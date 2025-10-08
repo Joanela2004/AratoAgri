@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class DetailPanier extends Model
 {
    protected $table='detail_paniers';
-   protected $primaryKey='numdetailPanier';
-   protected $fillable=['quantite','numProduit','numPanier'] ;
+   protected $primaryKey='numDetailPanier';
+   protected $fillable=['poids','decoupe','numProduit','numPanier'] ;
    
    //un detail panier ou plusieurs appartient a un panier 
    public function panier(){

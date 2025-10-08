@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('quantiteStock')->default(0);
             $table->decimal('poids',10,2);
             $table->string('image',255)->nullable(false);
-            $table->foreignId('numCategorie')->constrained('categories','numCategorie')->onDelete('cascade');
+            $table->foreignId('numCategorie')->constrained('categories','numCategorie')->onDelete('restrict');
             $table->unsignedBigInteger('numPromotion')->nullable();
             $table->foreign('numPromotion')->references('numPromotion')->on('promotions')->nullOnDelete();
             $table->timestamps();

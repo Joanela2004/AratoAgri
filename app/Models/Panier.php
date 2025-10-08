@@ -11,15 +11,18 @@ class Panier extends Model
    
     //un panier appartient a un utilisateur
     public function utilisateur(){
-return $this->belongsTo(Utilisateur::class,'numUtilisateur');
+    return $this->belongsTo(Utilisateur::class,'numUtilisateur');
     }
-    //un panier contient plusieurs detail panier
+    
+    //un panier a plusieurs detail panier
     public function detailPaniers(){
         return $this->hasMany(DetailPanier::class,'numPanier');
     }
 
-    //un panier appartient plusieurs produit via detail_panier
-    public function produits(){
-        return $this->belongsToMany(Produit::class,'detail_paniers')->with('quantite')->withTimestamps();
-    }
+    // //un panier appartient plusieurs produit via detail_panier
+    // public function produits(){
+    // return $this->belongsToMany(Produit::class, 'detail_paniers', 'numPanier', 'numProduit')
+    //                 ->withPivot('quantite')
+    //                 ->withTimestamps();     
+    // }
 }

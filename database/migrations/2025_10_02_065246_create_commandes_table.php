@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('commandes', function (Blueprint $table) {
             $table->id('numCommande');
             $table->foreignId('numUtilisateur')->constrained('utilisateurs','numUtilisateur')->onDelete('cascade');
-            $table->foreignId('numModePaiement')->constrained('mode_paiements','numModePaiement')->onDelete('restrict');
-            $table->dateTime('dateCommande')->useCurrent();
+            $table->dateTime('dateCommande')->nullable();
             $table->enum('statut',['en attente','payée','expédiée','terminée','annulée'])->default('en attente');
             $table->decimal('montantTotal',14,2)->default(0.00);
+            $table->foreignId('numModePaiement')->constrained('mode_paiements','numModePaiement')->onDelete('restrict');
             $table->string('adresseDeLivraison',255);
             
             $table->timestamps();

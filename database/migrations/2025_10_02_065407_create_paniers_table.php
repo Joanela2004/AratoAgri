@@ -13,9 +13,8 @@ return new class extends Migration
     {
         Schema::create('paniers', function (Blueprint $table) {
             $table->id('numPanier');
-            $table->foreignId('numUtilisateur')->constrained('utilisateurs','numUtilisateur')->onDelete('cascade')->unique();
-          $table->date('dateCreation')->nullable();
-
+            $table->foreignId('numUtilisateur')->constrained('utilisateurs','numUtilisateur')->onDelete('cascade');
+            $table->dateTime('dateCreation')->nullable();
             $table->timestamps();
         });
     }

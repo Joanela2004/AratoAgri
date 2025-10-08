@@ -12,4 +12,5 @@ public function commande()
 {
 return $this->belongsTo(Commande::class,'numCommande');
 }
+
 }

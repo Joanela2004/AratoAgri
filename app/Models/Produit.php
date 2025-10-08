@@ -8,8 +8,9 @@ class Produit extends Model
 {
     use HasFactory;
     protected $primaryKey ='numProduit';
-    protected $fillable=['nomProduit','prix','poids','quantiteStock','image','numPromotion'];
-    public function produit(){
+    protected $fillable=['nomProduit','prix','poids','quantiteStock','image','numCategorie','numPromotion'];
+    
+    public function categorie(){
         return $this->belongsTo(Categorie::class,'numCategorie');
     }
 
@@ -17,9 +18,9 @@ class Produit extends Model
         return $this->hasOne(DetailPanier::class,'numProduit');
     }
 
-    //un produit peut etre dans plusieurs commandes
-    public function commandes(){
-        return $this->belongsToMany(Commande::class,'detailCommande','numProduit','numCommande')->withPivot('quantite','prixUnitaire')->withTimestamps();
+
+    public function detailCommande(){
+        return $this->hasOne(DetailCommande::class,'numProduit');
     }
 
     // Un produit peut avoir une promo (ou pas)

@@ -14,9 +14,13 @@ return new class extends Migration
         Schema::create('detail_paniers', function (Blueprint $table) {
             $table->id('numDetailPanier');
             $table->foreignId('numPanier')->constrained('paniers','numPanier')->onDelete('cascade');
-             $table->foreignId('numProduit')->constrained('produits','numProduit')->onDelete('restrict');
-            $table->unsignedInteger('quantite')->default(1);
-            $table->unique(['numPanier','numProduit']);
+            $table->foreignId('numProduit')->constrained('produits','numProduit')->onDelete('cascade');
+            
+            $table->decimal('poids', 10, 2)->default(0.25);
+            $table->string('decoupe')->default('entière');
+            
+            $table->unique(['numPanier', 'numProduit']); 
+           
             $table->timestamps();
         });
     }

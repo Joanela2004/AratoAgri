@@ -8,7 +8,7 @@ class DetailCommande extends Model
 {
 protected $primaryKey ='numDetailCommande';
 protected $table='detail_commandes';
-protected $fillable=['numCommande','numProduit','quantite','prixUnitaire'];
+protected $fillable=['numCommande','numProduit','quantite','prixUnitaire','sousTotal'];
 
 //un ou plusieurs detailCommande appartient a un commande
 public function commande(){

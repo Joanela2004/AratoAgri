@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id('numDetailCommande');
             $table->foreignId('numCommande')->constrained('commandes','numCommande')->onDelete('cascade');
             $table->foreignId('numProduit')->constrained('produits','numProduit')->onDelete('restrict');
-            $table->string('quantite')->default(1);
+            $table->decimal('poids',10,2)->default(0.25);
+            $table->string('decoupe')->default('entière');
             $table->decimal('prixUnitaire',14,0);
+            $table->decimal('sousTotal',14,0);
+            
             $table->timestamps();
         });
     }

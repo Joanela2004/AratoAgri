@@ -57,7 +57,7 @@ class PromotionController extends Controller
        $promotion=Promotion::findOrFail($id);
        $request->validate([
         'nomPromotion'=>'sometimes|string|max:100',
-        'codePromo'=>'nullable|string|max:100',
+        'codePromo'=>'nullable|string|unique:promotions,codePromo|max:100',
         'valeur'=>'sometimes|numeric|min:0',
         'dateDebut'=>'sometimes|date',
         'dateFin'=>'sometimes|date|after_or_equal:dateDebut',

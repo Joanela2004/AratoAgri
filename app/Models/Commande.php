@@ -7,16 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class Commande extends Model
 {
     protected $primaryKey='numCommande';
-    protected $fillable=['dateCommande','statut','montantTotal','adresseDeLivraison','numUtilisateur'];
+    protected $fillable=['dateCommande','statut','montantTotal','adresseDeLivraison','numUtilisateur','numModePaiement'];
 
     //Relation avec client
     public function utilisateur(){
         return $this->belongsTo(Utilisateur::class,'numUtilisateur');
     }
 
-    //Relation avec les produits
-    public function produits(){
-        return $this->belongsToMany(Produit::class,'detailCommande')->withPivot('quantite','PrixUnitaire')->withTimestamps();
+    
+    //une commande a plusieurs detailCommande
+    public function detailCommandes(){
+        return $this->hasMany(DetailCommande::class,'numCommande');
     }
     
     //une commande utilise un seul paiement
@@ -27,5 +28,9 @@ class Commande extends Model
     //une commande possede une livraison
     public function livraison(){
         return $this->hasOne(Livraison::class,'numCommande');
+    }
+    //une commande appartient a un mode paiement
+    public function mode_paiement(){
+        return $this->belongsTo(ModePaiement::class,'numModePaiement');
     }
 }

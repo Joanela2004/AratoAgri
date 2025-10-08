@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Paiement extends Model
 {
     protected $primaryKey='numPaiement';
-    protected $fillable=['numCommande','numModePaiement','statut','datePaiement'];
+    protected $fillable=['numCommande','numModePaiement','statut','datePaiement','montantApayer'];
     
     
     //un paiement appartient a une commande

@@ -11,10 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('mode_paiements', function (Blueprint $table) {
-            $table->id('numModePaiement');
-            $table->string('nomModePaiement',100);
-            $table->timestamps();
+        Schema::table('mode_paiements', function (Blueprint $table) {
+            $table->decimal('solde', 10, 2)->default(0.00)->after('nomModePaiement');
         });
     }
 
@@ -23,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('mode_paiements');
+        Schema::table('mode_paiements', function (Blueprint $table) {
+            //
+        });
     }
 };
