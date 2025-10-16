@@ -22,12 +22,13 @@ class ArticleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'titre'=>'required|string|max:255',
-            'description'=>'required|string',
-            'contenu'=>'required|text',
-            'image'=>'required|string|max:255',
-            'auteur'=>'required|string|max:100',
-        ]);
+    'titre' => 'required|string|max:255',
+    'description' => 'required|string',
+    'contenu' => 'required|string|min:10',
+    'image' => 'required|string|max:255',
+    'auteur' => 'required|string|max:100',
+]);
+
 
         $article=Article::create($request->all());
         return response()->json($article,201);

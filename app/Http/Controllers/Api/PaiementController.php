@@ -23,17 +23,17 @@ class PaiementController extends Controller
      * Store a newly created resource in storage.
      */
     //creer un paiement
-    public function store(Request $request)
-    {
-        $request->validate([
-            'numCommande'=>'required|exists:commandes,numCommande',
-            'numModePaiement'=>'required|exists:mode_paiements,numModePaiement',
-            'statut'=>'required|string|max:50',
-            'datePaiement'=>'required|date'
-        ]);
-        $paiement = Paiement::create($request->all());
-        return response()->json($paiement->load(['commande','modePaiement'],201));
-    }
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'numCommande'=>'required|exists:commandes,numCommande',
+    //         'numModePaiement'=>'required|exists:mode_paiements,numModePaiement',
+    //         'statut'=>'required|string|max:50',
+    //         'datePaiement'=>'required|date'
+    //     ]);
+    //     $paiement = Paiement::create($request->all());
+    //     return response()->json($paiement->load(['commande','modePaiement'],201));
+    // }
 
     /**
      * Display the specified resource.

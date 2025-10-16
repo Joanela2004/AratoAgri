@@ -14,11 +14,15 @@ return new class extends Migration
         Schema::create('livraisons', function (Blueprint $table) {
             $table->id('numLivraison');
             $table->foreignId('numCommande')->constrained('commandes','numCommande')->onDelete('cascade');
-            $table->string('modeLivraison',100);
-            $table->string('transporteur',100);
+            $table->string('lieuLivraison',100)->nullable();
+            $table->string('transporteur')->default('à déterminer');
+            $table->string('referenceColis')->nullable();
+            $table->decimal('fraisLivraison',14,2)->default(0.00);
+            $table->string('contactTransporteur')->nullable();
             $table->datetime('dateExpedition')->nullable();
-            $table->datetime('datelivraison')->nullable();
-            $table->enum('statutLivraison',['en cours','en préparation','livré(e)s','annulé'])->default('en préparation');
+            $table->datetime('dateLivraison')->nullable();
+            
+            $table->enum('statutLivraison',['en cours','en préparation','livré(e)s'])->default('en préparation');
 
             $table->timestamps();
         });

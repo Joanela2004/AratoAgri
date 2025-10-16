@@ -15,11 +15,12 @@ return new class extends Migration
             $table->id('numCommande');
             $table->foreignId('numUtilisateur')->constrained('utilisateurs','numUtilisateur')->onDelete('cascade');
             $table->dateTime('dateCommande')->nullable();
-            $table->enum('statut',['en attente','payée','expédiée','terminée','annulée'])->default('en attente');
+            $table->enum('statut',['en cours','récu'])->default('en cours');
             $table->decimal('montantTotal',14,2)->default(0.00);
             $table->foreignId('numModePaiement')->constrained('mode_paiements','numModePaiement')->onDelete('restrict');
             $table->string('adresseDeLivraison',255);
-            
+            $table->boolean('payerLivraison')->default(false);
+
             $table->timestamps();
         });
     }

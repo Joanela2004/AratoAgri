@@ -7,7 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class Livraison extends Model
 {
 protected $primaryKey='numLivraison';
-protected $fillable=['dateExpedition','dateLivraison','modeLivraison','statutLivraison','transporteur','numCommande'];
+protected $fillable=['numCommande',
+        'transporteur',
+        'referenceColis',
+        'contactTransporteur',
+        'lieuLivraison',
+        'dateExpedition',
+        'dateLivraison',
+        'statutLivraison',
+    'fraisLivraison'];
 public function commande()
 {
 return $this->belongsTo(Commande::class,'numCommande');

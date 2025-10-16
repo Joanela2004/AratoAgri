@@ -19,10 +19,5 @@ class Panier extends Model
         return $this->hasMany(DetailPanier::class,'numPanier');
     }
 
-    // //un panier appartient plusieurs produit via detail_panier
-    // public function produits(){
-    // return $this->belongsToMany(Produit::class, 'detail_paniers', 'numPanier', 'numProduit')
-    //                 ->withPivot('quantite')
-    //                 ->withTimestamps();     
-    // }
+   
 }

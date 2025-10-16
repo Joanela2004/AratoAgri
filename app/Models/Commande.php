@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Commande extends Model
 {
     protected $primaryKey='numCommande';
-    protected $fillable=['dateCommande','statut','montantTotal','adresseDeLivraison','numUtilisateur','numModePaiement'];
+    protected $fillable=['dateCommande','statut','montantTotal','adresseDeLivraison','numUtilisateur','numModePaiement','payerLivraison'];
 
     //Relation avec client
     public function utilisateur(){

@@ -8,7 +8,7 @@ class ModePaiement extends Model
 {
     protected $table='mode_paiements';
     protected $primaryKey='numModePaiement';
-    protected $fillable=['nomModePaiement'];
+    protected $fillable=['nomModePaiement','solde'];
     
     public function paiements(){
         return $this->hasMany(Paiement::class,'numModePaiement');

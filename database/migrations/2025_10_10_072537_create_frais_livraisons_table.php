@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('mode_paiements', function (Blueprint $table) {
-            $table->decimal('solde', 10, 2)->default(0.00)->after('nomModePaiement');
+        Schema::create('frais_livraisons', function (Blueprint $table) {
+            $table->id('numFrais');
+            $table->decimal('poidsMin', 8, 2);
+            $table->decimal('poidsMax', 8, 2);
+            $table->decimal('frais', 10, 2);
+            $table->timestamps();
         });
     }
 
@@ -21,8 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('mode_paiements', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('frais_livraisons');
     }
 };

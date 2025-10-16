@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('mode_paiements', function (Blueprint $table) {
             $table->id('numModePaiement');
             $table->string('nomModePaiement',100);
+            $table->decimal('solde', 10, 2)->default(0.00);
+
             $table->timestamps();
         });
     }
