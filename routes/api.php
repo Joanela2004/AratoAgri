@@ -29,14 +29,14 @@ Route::get('categories', [CategorieController::class, 'index']);
 Route::get('categories/{id}', [CategorieController::class, 'show']);
 Route::get('promotions', [PromotionController::class, 'index']);
 Route::get('promotions/{id}', [PromotionController::class, 'show']);
- Route::apiResource('paniers', PanierController::class);
-Route::apiResource('detail_paniers', DetailPanierController::class);
-   
+ 
 
 Route::middleware('auth:sanctum')->group(function(){
       // Déconnexion
     Route::post('/logout', [AuthController::class, 'logout']);
-
+     Route::apiResource('paniers', PanierController::class);
+     Route::apiResource('detail_paniers', DetailPanierController::class);
+  
     // Commandes du client
     Route::get('mesCommandes', [CommandeController::class,'indexClient']); 
     Route::post('commandes', [CommandeController::class,'store']);
@@ -47,11 +47,11 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('mesLivraisons', [LivraisonController::class,'indexClient']);
     Route::get('mesLivraisons/{id}', [LivraisonController::class,'showClient']);
 
-     Route::middleware(['auth:sanctum','isAdmin'])->group(function(){
+     Route::middleware('isAdmin')->group(function (){
     
     Route::apiResource('commandes', CommandeController::class);
     Route::apiResource('livraisons', LivraisonController::class);
-   
+    Route::apiResource('frais_livraisons',FraisLivraisonController::class);
     Route::apiResource('detail_commandes', DetailCommandeController::class);
     Route::apiResource('paiements', PaiementController::class);
     Route::apiResource('utilisateurs', UtilisateurController::class);

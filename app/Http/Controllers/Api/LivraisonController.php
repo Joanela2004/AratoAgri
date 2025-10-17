@@ -5,35 +5,36 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Livraison;
+
 class LivraisonController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function indexClient(){
-        $livraisons=Livraison::with('commande')->whereHas('commande',function($a){
-            $a->where('numUtilisateur',auth()->id());
-        })->get();
+    // Liste des livraisons pour le client connecté
+    public function indexClient()
+    {
+        $livraisons = Livraison::with('commande')
+            ->whereHas('commande', fn($q) => $q->where('numUtilisateur', auth()->id()))
+            ->get();
         return response()->json($livraisons,200);
     }
 
+    // Liste de toutes les livraisons (admin)
     public function index()
     {
-        $livraison = Livraison::with('commande')->get();
-        return response()->json($livraison,200);
+        $livraisons = Livraison::with('commande')->get();
+        return response()->json($livraisons,200);
     }
 
-   
+    // Afficher une livraison spécifique du client
     public function showClient(string $id)
     {
-        $livraison=Livraison::with('commande')->whereHas('commande',function($a){$a->where('numUtilisateur',auth()->id());})->findOrFail($id);
+        $livraison = Livraison::with('commande')
+            ->whereHas('commande', fn($q) => $q->where('numUtilisateur', auth()->id()))
+            ->findOrFail($id);
         return response()->json($livraison,200);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-     public function update(Request $request, string $id)
+    // Mise à jour d'une livraison
+    public function update(Request $request, string $id)
     {
         $livraison = Livraison::findOrFail($id);
 
@@ -46,7 +47,6 @@ class LivraisonController extends Controller
             'fraisLivraison'=>'sometimes|numeric'
         ]);
 
-        
         $livraison->update([
             'statutLivraison' => $request->statutLivraison,
             'dateExpedition' => $request->statutLivraison === 'en cours' && !$livraison->dateExpedition ? now() : $livraison->dateExpedition,
@@ -58,14 +58,10 @@ class LivraisonController extends Controller
             'fraisLivraison' => $request->input('fraisLivraison', $livraison->fraisLivraison),
         ]);
 
-        return response()->json([
-            'message' => 'Statut de livraison mis à jour avec succès',
-            'livraison' => $livraison
-        ], 200);
+        return response()->json(['message'=>'Livraison mise à jour','livraison'=>$livraison],200);
     }
-    /**
-     * Remove the specified resource from storage.
-     */
+
+    // Supprimer une livraison
     public function destroy(string $id)
     {
         $livraison = Livraison::findOrFail($id);

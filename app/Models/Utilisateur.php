@@ -10,12 +10,16 @@ use Illuminate\Notifications\Notifiable;
 class Utilisateur extends Authenticatable
 {
     use HasApiTokens, Notifiable;
+    protected $table = 'utilisateurs';
     protected $primaryKey ='numUtilisateur';
     protected $fillable=['nomUtilisateur','email','contact','motDePasse','role'];
     protected $hidden =['motDePasse','souvenirToken'];
 
+    public function getAuthPassword(){
+        return $this->motDePasse;
+    }
     // hachage de mot de passe
-    public function modifierMotDePasse($value){
+    public function setMotDePasseAttribute($value){
         $this->attributes['motDePasse']=Hash::make($value);
     }
 //un utilisateur peut avoir plusieurs panier
