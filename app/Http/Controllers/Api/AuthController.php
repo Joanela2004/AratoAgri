@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Utilisateur;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -50,7 +51,7 @@ public function logout(Request $request)
         ]);
 
         $utilisateur=Utilisateur::where('email',$request->email)->first();
-        if(!$utilisateur || !Hash::check($request->motDePasse)){
+        if(!$utilisateur || !Hash::check($request->motDePasse, $utilisateur->motDePasse)){
             return response()->json(['error'=>'identifiants invalides'],401);
         }
 
@@ -62,5 +63,5 @@ public function logout(Request $request)
         ],200);
     }
 
-    
+
 }
