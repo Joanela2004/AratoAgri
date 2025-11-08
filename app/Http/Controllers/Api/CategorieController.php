@@ -15,29 +15,34 @@ class CategorieController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['nomCategorie'=>'required|string|max:255']);
-        $categorie = Categorie::create($request->all());
+        $request->validate([
+            'nomCategorie' => 'required|string|max:255'
+        ]);
+
+        $categorie = Categorie::create([
+            'nomCategorie' => $request->nomCategorie
+        ]);
+
         return response()->json($categorie, 201);
     }
 
     public function show(string $id)
     {
-        $categorie = Categorie::findOrFail($id);
-        return response()->json($categorie, 200);
+        return response()->json(Categorie::findOrFail($id), 200);
     }
 
     public function update(Request $request, string $id)
     {
         $categorie = Categorie::findOrFail($id);
-        $request->validate(['nomCategorie'=>'sometimes|string|max:255']);
-        $categorie->update($request->all());
+        $request->validate(['nomCategorie' => 'sometimes|string|max:255']);
+        $categorie->update($request->only('nomCategorie'));
+
         return response()->json($categorie, 200);
     }
 
     public function destroy(string $id)
     {
-        $categorie = Categorie::findOrFail($id);
-        $categorie->delete();
-        return response()->json(['message'=>'Categorie supprimée'], 200);
+        Categorie::findOrFail($id)->delete();
+        return response()->json(['message' => 'Catégorie supprimée'], 200);
     }
 }

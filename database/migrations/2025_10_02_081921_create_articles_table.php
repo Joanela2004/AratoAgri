@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('image',100);
             $table->string('auteur',100)->nullable();
             $table->datetime('datePublication')->nullable();
+            
             $table->timestamps();
         });
     }
