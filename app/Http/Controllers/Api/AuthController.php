@@ -10,58 +10,76 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-   public function register(Request $request)
-{
-    $request->validate([
-        'nomUtilisateur' => 'required|string|max:100',
-        'email' => 'required|email|unique:utilisateurs,email',
-        'contact' => 'required|string|min:10|max:10',
-        'motDePasse' => 'required|string|min:6',
-        'role' => 'required|in:admin,client'
-    ]);
-
-    $utilisateur = Utilisateur::create([
-        'nomUtilisateur' => $request->nomUtilisateur,
-        'email' => $request->email,
-        'contact' => $request->contact,
-        'motDePasse' => Hash::make($request->motDePasse),
-        'role' => $request->role
-    ]);
-
-    $token = $utilisateur->createToken('token')->plainTextToken;
-
-    return response()->json([
-        'message' => 'Inscription réussie',
-        'utilisateur' => $utilisateur,
-        'token' => $token
-    ], 201);
-}
-
-public function logout(Request $request)
-{
-    $request->user()->tokens()->delete();
-    return response()->json(['message' => 'Déconnexion réussie'], 200);
-}
-
-
-    public function login(Request $request){
+    public function register(Request $request)
+    {
         $request->validate([
-            'email'=>'required|email',
-            'motDePasse'=>'required|string',
+            'nom_utilisateur' => 'required|string|max:100',
+            'email' => 'required|email|unique:utilisateurs,email',
+            'contact' => 'required|string|max:15',
+            'mot_de_passe' => 'required|string|min:6|confirmed',
         ]);
 
-        $utilisateur=Utilisateur::where('email',$request->email)->first();
-        if(!$utilisateur || !Hash::check($request->motDePasse, $utilisateur->motDePasse)){
-            return response()->json(['error'=>'identifiants invalides'],401);
-        }
+        $utilisateur = Utilisateur::create([
+            'nomUtilisateur' => $request->nom_utilisateur,
+            'email' => $request->email,
+            'contact' => $request->contact,
+            'motDePasse' => Hash::make($request->mot_de_passe),
+            'role' => 'client'
+        ]);
 
-        $token = $utilisateur->createToken('token')->plainTextToken;
+        $token = $utilisateur->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'message'=>'Connexion réussie',
-            'token'=>$token,
-            'utilisateur'=>$utilisateur
-        ],200);
+            'user' => $utilisateur,
+            'access_token' => $token,
+            'token_type' => 'Bearer'
+        ], 201);
     }
 
+    public function login(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'mot_de_passe' => 'required'
+        ]);
+
+        $user = Utilisateur::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->mot_de_passe, $user->motDePasse)) {
+            return response()->json(['message' => 'Identifiants invalides'], 401);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'user' => $user,
+            'access_token' => $token,
+            'token_type' => 'Bearer'
+        ], 200);
+    }
+    public function changePassword(Request $request)
+{
+    $user = $request->user();
+
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès refusé'], 403);
+    }
+
+    $request->validate([
+        'current_password' => 'required',
+        'new_password' => 'required|min:6|confirmed'
+    ]);
+
+    if (!Hash::check($request->current_password, $user->motDePasse)) {
+        return response()->json(['message' => 'Mot de passe actuel incorrect'], 400);
+    }
+
+    $user->motDePasse = Hash::make($request->new_password);
+    $user->save();
+
+    $user->tokens()->delete();
+
+    return response()->json(['message' => 'Mot de passe mis à jour, veuillez vous reconnecter.'], 200);
+}
 
 }

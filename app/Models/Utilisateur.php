@@ -11,24 +11,29 @@ use Illuminate\Support\Facades\Hash;
 class Utilisateur extends Authenticatable
 {
     use HasApiTokens, Notifiable;
-    protected $table = 'utilisateurs';
-    protected $primaryKey ='numUtilisateur';
-    protected $fillable=['nomUtilisateur','email','contact','motDePasse','role'];
-    protected $hidden =['motDePasse','souvenirToken'];
 
-    public function getAuthPassword(){
+    protected $table = 'utilisateurs';
+    protected $primaryKey = 'numUtilisateur';
+    protected $fillable = ['nomUtilisateur','email','contact','motDePasse','role'];
+    protected $hidden = ['motDePasse','remember_token'];
+
+    public function getAuthPassword()
+    {
         return $this->motDePasse;
     }
-    // hachage de mot de passe
-    public function setMotDePasseAttribute($value){
-        $this->attributes['motDePasse']=Hash::make($value);
+
+    public function setMotDePasseAttribute($value)
+    {
+        $this->attributes['motDePasse'] = Hash::needsRehash($value) ? Hash::make($value) : $value;
     }
-//un utilisateur peut avoir plusieurs panier
-    public function paniers(){
-    return $this->hasMany(Panier::class,'numUtilisateur');
-}
-//un utilisateur  possedent un ou plusieurs commande
-public function commandes(){
-    return $this->hasMany(Commande::class,'numUtilisateur');
-}
+
+    public function paniers()
+    {
+        return $this->hasMany(Panier::class, 'numUtilisateur');
+    }
+
+    public function commandes()
+    {
+        return $this->hasMany(Commande::class, 'numUtilisateur');
+    }
 }

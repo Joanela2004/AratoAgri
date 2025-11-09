@@ -6,11 +6,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
-    { 
+    {
         Schema::create('produits', function (Blueprint $table) {
             $table->id('numProduit');
             $table->string('nomProduit',100);
@@ -22,12 +19,9 @@ return new class extends Migration
             $table->unsignedBigInteger('numPromotion')->nullable();
             $table->foreign('numPromotion')->references('numPromotion')->on('promotions')->nullOnDelete();
             $table->timestamps();
-        }); 
+        });
     }
-       
-    /**
-     * Reverse the migrations.
-     */
+        
     public function down(): void
     {
         Schema::dropIfExists('produits');
