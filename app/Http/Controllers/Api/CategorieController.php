@@ -3,20 +3,30 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Categorie;
+use Illuminate\Http\Request;
 
 class CategorieController extends Controller
 {
     public function index()
     {
-        return response()->json(Categorie::all(), 200);
+        $categories = Categorie::all();
+        return response()->json($categories);
+    }
+
+    public function show($id)
+    {
+        $categorie = Categorie::find($id);
+        if (!$categorie) {
+            return response()->json(['message' => 'Catégorie non trouvée'], 404);
+        }
+        return response()->json($categorie);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'nomCategorie' => 'required|string|max:255'
+            'nomCategorie' => 'required|string|max:100'
         ]);
 
         $categorie = Categorie::create([
@@ -26,23 +36,22 @@ class CategorieController extends Controller
         return response()->json($categorie, 201);
     }
 
-    public function show(string $id)
-    {
-        return response()->json(Categorie::findOrFail($id), 200);
-    }
-
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
         $categorie = Categorie::findOrFail($id);
-        $request->validate(['nomCategorie' => 'sometimes|string|max:255']);
-        $categorie->update($request->only('nomCategorie'));
+        
+        $request->validate([
+            'nomCategorie' => 'required|string|max:100'
+        ]);
 
-        return response()->json($categorie, 200);
+        $categorie->update($request->all());
+        return response()->json($categorie);
     }
 
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        Categorie::findOrFail($id)->delete();
-        return response()->json(['message' => 'Catégorie supprimée'], 200);
+        $categorie = Categorie::findOrFail($id);
+        $categorie->delete();
+        return response()->json(['message' => 'Catégorie supprimée']);
     }
 }
