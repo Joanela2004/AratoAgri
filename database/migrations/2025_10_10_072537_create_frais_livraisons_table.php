@@ -10,15 +10,18 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('frais_livraisons', function (Blueprint $table) {
+    {      Schema::create('frais_livraisons', function (Blueprint $table) {
             $table->id('numFrais');
             $table->decimal('poidsMin', 8, 2);
             $table->decimal('poidsMax', 8, 2);
             $table->decimal('frais', 10, 2);
             $table->timestamps();
+            $table->decimal('solde', 10, 2)->default(0.00)->after('nomModePaiement');
+ 
         });
-    }
+
+    
+}
 
     /**
      * Reverse the migrations.
