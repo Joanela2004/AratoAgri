@@ -10,42 +10,42 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+  public function register(Request $request)
     {
-        $request->validate([
-            'nom_utilisateur' => 'required|string|max:100',
-            'email' => 'required|email|unique:utilisateurs,email',
-            'contact' => 'required|string|max:15',
-            'mot_de_passe' => 'required|string|min:6|confirmed',
+        $validatedData = $request->validate([
+            'nomUtilisateur' => 'required',
+            'email' => 'required',
+            'contact' => 'required',
+            'motDePasse' => 'required|string',
         ]);
 
-        $utilisateur = Utilisateur::create([
-            'nomUtilisateur' => $request->nom_utilisateur,
-            'email' => $request->email,
-            'contact' => $request->contact,
-            'motDePasse' => Hash::make($request->mot_de_passe),
-            'role' => 'client'
-        ]);
+        $user = new Utilisateur();
+        $user->nomUtilisateur = $validatedData['nomUtilisateur'];
+        $user->email = $validatedData['email'];
+        $user->contact = $validatedData['contact'];
+        $user->motDePasse = bcrypt($validatedData['motDePasse']);
 
-        $token = $utilisateur->createToken('auth_token')->plainTextToken;
+        $user->save();
+
+        $token = $user->createToken('token')->plainTextToken;
 
         return response()->json([
-            'user' => $utilisateur,
             'access_token' => $token,
-            'token_type' => 'Bearer'
-        ], 201);
+            'token_type' => 'Bearer',
+        ]);
     }
 
+    
     public function login(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
-            'mot_de_passe' => 'required'
+            'motDePasse' => 'required'
         ]);
 
         $user = Utilisateur::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->mot_de_passe, $user->motDePasse)) {
+        if (!$user || !Hash::check($request->motDePasse, $user->motDePasse)) {
             return response()->json(['message' => 'Identifiants invalides'], 401);
         }
 

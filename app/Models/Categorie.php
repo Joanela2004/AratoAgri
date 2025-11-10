@@ -8,10 +8,9 @@ class Categorie extends Model
 {
     protected $primaryKey='numCategorie';
     protected $fillable=['nomCategorie'];
-    public $incrementing = true;
-    protected $keyType = 'int';
-
+   
        public function produits(){
-        return $this->hasMany(Produit::class,'numCategorie');   }
+        return $this->hasMany(Produit::class,'numCategorie');   
+    }
 
 }

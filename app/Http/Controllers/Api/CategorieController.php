@@ -26,9 +26,15 @@ class CategorieController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nomCategorie' => 'required|string|max:100'
+            'nomCategorie' => 'required|string|unique:categories,nomCategorie'
         ]);
 
+        $nom = strtolower($request->nomCategorie);
+        $nom = rtrim($nom, 's');
+
+        if (Categorie::whereRaw('LOWER(nomCategorie) = ?', [$nom])->exists()) {
+        return response()->json(['message' => 'Cette catégorie existe déjà !'], 422);
+    }
         $categorie = Categorie::create([
             'nomCategorie' => $request->nomCategorie
         ]);
@@ -41,7 +47,7 @@ class CategorieController extends Controller
         $categorie = Categorie::findOrFail($id);
         
         $request->validate([
-            'nomCategorie' => 'required|string|max:100'
+            'nomCategorie' => 'required|string|unique:categories,nomCategorie'
         ]);
 
         $categorie->update($request->all());

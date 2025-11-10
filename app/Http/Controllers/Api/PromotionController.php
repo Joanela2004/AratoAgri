@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Promotion;
+use Illuminate\Http\Request;
 
 class PromotionController extends Controller
 {
@@ -16,12 +16,14 @@ class PromotionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nomPromotion'=>'required|string|max:100',
-            'codePromo'=>'nullable|string|max:50|unique:promotions,codePromo',
-            'valeur'=>'required|numeric|min:0',
-            'dateDebut'=>'required|date',
-            'dateFin'=>'required|date|after_or_equal:dateDebut',
-            'statutPromotion'=>'required|string|max:50',
+            'nomPromotion' => 'required|string|max:100',
+            'typePromotion' => 'required|string|in:Pourcentage,Montant fixe',
+            'codePromo' => 'required|string|max:50|unique:promotions,codePromo',
+            'valeur' => 'required|numeric|min:0',
+            'dateDebut' => 'required|date',
+            'dateFin' => 'required|date|after_or_equal:dateDebut',
+            'statutPromotion' => 'required|string|max:50',
+            'montantMinimum' => 'required|numeric|min:0',
         ]);
 
         $promotion = Promotion::create($request->all());
@@ -39,12 +41,14 @@ class PromotionController extends Controller
         $promotion = Promotion::findOrFail($id);
 
         $request->validate([
-            'nomPromotion'=>'sometimes|string|max:100',
-            'codePromo'=>'nullable|string|max:50|unique:promotions,codePromo,'.$id,
-            'valeur'=>'sometimes|numeric|min:0',
-            'dateDebut'=>'sometimes|date',
-            'dateFin'=>'sometimes|date|after_or_equal:dateDebut',
-            'statutPromotion'=>'sometimes|string|max:50',
+            'nomPromotion' => 'sometimes|string|max:100',
+            'typePromotion' => 'sometimes|string|in:Pourcentage,Montant fixe',
+            'codePromo' => 'nullable|string|max:50|unique:promotions,codePromo,'.$id.',numPromotion',
+            'valeur' => 'sometimes|numeric|min:0',
+            'dateDebut' => 'sometimes|date',
+            'dateFin' => 'sometimes|date|after_or_equal:dateDebut',
+            'statutPromotion' => 'sometimes|string|max:50',
+            'montantMinimum' => 'sometimes|numeric|min:0',
         ]);
 
         $promotion->update($request->all());
@@ -55,6 +59,6 @@ class PromotionController extends Controller
     {
         $promotion = Promotion::findOrFail($id);
         $promotion->delete();
-        return response()->json(['message'=>'Promotion supprimée'], 200);
+        return response()->json(null, 204);
     }
 }

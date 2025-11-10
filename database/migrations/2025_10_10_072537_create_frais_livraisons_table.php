@@ -15,9 +15,9 @@ return new class extends Migration
             $table->decimal('poidsMin', 8, 2);
             $table->decimal('poidsMax', 8, 2);
             $table->decimal('frais', 10, 2);
+            $table->decimal('solde', 10, 2)->default(0.00);
             $table->timestamps();
-            $table->decimal('solde', 10, 2)->default(0.00)->after('nomModePaiement');
- 
+           
         });
 
     

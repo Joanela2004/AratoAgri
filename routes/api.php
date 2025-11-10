@@ -33,9 +33,7 @@ Route::get('promotions/{id}', [PromotionController::class, 'show']);
 Route::get('/test', function () {
     return response()->json(['message' => 'API working!']);
 });
- 
-Route::middleware('auth:sanctum')->group(function(){
-    Route::post('/logout', [AuthController::class, 'logout']);
+Route::post('/logout', [AuthController::class, 'logout']);
     
     Route::post('/admin/change-password', [AuthController::class, 'changePassword']);
     
@@ -50,7 +48,7 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('mesLivraisons', [LivraisonController::class,'indexClient']);
     Route::get('mesLivraisons/{id}', [LivraisonController::class,'showClient']);
 
-    Route::middleware('isAdmin')->group(function (){
+    Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function(){
         Route::post('categories', [CategorieController::class, 'store']);
         Route::put('categories/{id}', [CategorieController::class, 'update']);
         Route::delete('categories/{id}', [CategorieController::class, 'destroy']);
@@ -66,4 +64,3 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::apiResource('articles', ArticleController::class)->except(['index', 'show']);
         Route::apiResource('promotions', PromotionController::class)->except(['index', 'show']);
     });
-});
