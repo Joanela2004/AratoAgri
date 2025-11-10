@@ -22,7 +22,7 @@ class ProduitController extends Controller
         'poids' => 'required|numeric|min:0',
         'quantiteStock' => 'required|integer|min:0',
         'numCategorie' => 'required|exists:categories,numCategorie',
-        'image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        'image' => 'required|image|mimes:jpg,jpeg,png|max:51200',
         'numPromotion' => 'nullable|exists:promotions,numPromotion',
     ]);
 
@@ -63,7 +63,7 @@ class ProduitController extends Controller
         'poids' => 'required|numeric|min:0',
         'quantiteStock' => 'required|integer|min:0',
         'numCategorie' => 'required|exists:categories,numCategorie',
-        'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'image' => 'nullable|image|mimes:jpg,jpeg,png|max:51200',
         'numPromotion' => 'nullable|exists:promotions,numPromotion',
     ]);
 
