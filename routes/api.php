@@ -49,10 +49,10 @@ Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('mesLivraisons/{id}', [LivraisonController::class,'showClient']);
 
     Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function(){
-        Route::post('categories', [CategorieController::class, 'store']);
-        Route::put('categories/{id}', [CategorieController::class, 'update']);
-        Route::delete('categories/{id}', [CategorieController::class, 'destroy']);
-        
+      Route::post('categories', [CategorieController::class, 'store']);
+      Route::put('categories/{id}', [CategorieController::class, 'update']);
+       Route::delete('categories/{id}', [CategorieController::class, 'destroy']);
+ 
         Route::apiResource('commandes', CommandeController::class);
         Route::apiResource('livraisons', LivraisonController::class);
         Route::apiResource('frais_livraisons', FraisLivraisonController::class);

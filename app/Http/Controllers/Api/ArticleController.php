@@ -12,20 +12,59 @@ class ArticleController extends Controller
     {
         return response()->json(Article::all(), 200);
     }
+public function store(Request $request)
+{
+    $request->validate([
+        'titre' => 'required|string|max:100',
+        'description' => 'required|string|max:255',
+        'contenu' => 'required|string|min:10',
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048', // validation fichier
+        'auteur' => 'required|string|max:100',
+    ]);
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'titre'=>'required|string|max:255',
-            'description'=>'required|string|max:255',
-            'contenu'=>'required|string|min:10',
-            'image'=>'required|string|max:255',
-            'auteur'=>'required|string|max:100',
-        ]);
+    $articleData = $request->all();
 
-        $article = Article::create($request->all());
-        return response()->json($article, 201);
+    if ($request->hasFile('image')) {
+        $image = $request->file('image');
+        $filename = time() . '_' . $image->getClientOriginalName();
+        $image->storeAs('public/articles', $filename);
+        $articleData['image'] = $filename;
     }
+
+    $article = Article::create($articleData);
+    return response()->json($article, 201);
+}
+
+public function update(Request $request, string $id)
+{
+    $article = Article::findOrFail($id);
+
+    $request->validate([
+        'titre' => 'sometimes|string|max:100',
+        'description' => 'sometimes|string|max:255',
+        'contenu' => 'sometimes|string|min:10',
+        'image' => 'sometimes|image|mimes:jpg,jpeg,png,gif|max:2048',
+        'auteur' => 'sometimes|string|max:100',
+        'datePublication' => 'sometimes|date',
+    ]);
+
+    $articleData = $request->all();
+
+    if ($request->hasFile('image')) {
+        // Supprimer l'ancienne image si nécessaire
+        if ($article->image) {
+            \Storage::delete('public/articles/' . $article->image);
+        }
+        $image = $request->file('image');
+        $filename = time() . '_' . $image->getClientOriginalName();
+        $image->storeAs('public/articles', $filename);
+        $articleData['image'] = $filename;
+    }
+
+    $article->update($articleData);
+    return response()->json($article, 200);
+}
+
 
     public function show(string $id)
     {
@@ -33,22 +72,7 @@ class ArticleController extends Controller
         return response()->json($article, 200);
     }
 
-    public function update(Request $request, string $id)
-    {
-        $article = Article::findOrFail($id);
-
-        $request->validate([
-            'titre'=>'sometimes|string|max:255',
-            'description'=>'sometimes|string|max:255',
-            'contenu'=>'sometimes|string|min:10',
-            'image'=>'sometimes|string|max:255',
-            'auteur'=>'sometimes|string|max:100',
-            'datePublication'=>'sometimes|date',
-        ]);
-
-        $article->update($request->all());
-        return response()->json($article, 200);
-    }
+       
 
     public function destroy(string $id)
     {

@@ -54,10 +54,23 @@ class CategorieController extends Controller
         return response()->json($categorie);
     }
 
-    public function destroy($id)
-    {
-        $categorie = Categorie::findOrFail($id);
-        $categorie->delete();
-        return response()->json(['message' => 'Catégorie supprimée']);
+  public function destroy($id)
+{
+    $categorie = Categorie::find($id);
+
+    if (!$categorie) {
+        return response()->json(['message' => 'Catégorie non trouvée'], 404);
     }
+
+      if ($categorie->produits()->count() > 0) {
+        return response()->json([
+            'message' => 'Impossible de supprimer cette catégorie : elle contient des produits'
+        ], 422);
+    }
+
+      $categorie->delete();
+
+    return response()->json(['message' => 'Catégorie supprimée avec succès'], 200);
+}
+
 }
