@@ -3,44 +3,57 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Paiement;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class PaiementController extends Controller
 {
-    // Lister tous les paiements
     public function index()
     {
-        $paiements = Paiement::with(['commande','modePaiement'])->get();
-        return response()->json($paiements,200);
+        return response()->json(Paiement::with('commande','modePaiement')->get());
     }
 
-    // Afficher un paiement
-    public function show(string $id)
+    public function show($id)
     {
-        $paiement = Paiement::with(['commande','modePaiement'])->findOrFail($id);
-        return response()->json($paiement,200);
+        $paiement = Paiement::with('commande','modePaiement')->find($id);
+        if(!$paiement) return response()->json(['message' => 'Paiement non trouvé'], 404);
+        return response()->json($paiement);
     }
 
-    // Modifier un paiement
-    public function update(Request $request, string $id)
+    public function store(Request $request)
     {
-        $paiement = Paiement::findOrFail($id);
-        $request->validate([
-            'numCommande'=>'sometimes|exists:commandes,numCommande',
-            'numModePaiement'=>'sometimes|exists:mode_paiements,numModePaiement',
-            'statut'=>'sometimes|string|max:50',
-            'datePaiement'=>'sometimes|date'
+        $validator = Validator::make($request->all(), [
+            'numCommande' => 'required|exists:commandes,numCommande',
+            'numModePaiement' => 'required|exists:mode_paiements,numModePaiement',
+            'montantApayer' => 'required|numeric',
+            'statut' => 'required|in:en attente,effectué,echoué',
+            'datePaiement' => 'nullable|date',
         ]);
-        $paiement->update($request->all());
-        return response()->json($paiement->load(['commande','modePaiement']),200);
+
+        if($validator->fails()){
+            return response()->json($validator->errors(), 422);
+        }
+
+        $paiement = Paiement::create($request->all());
+        return response()->json($paiement, 201);
     }
 
-    // Supprimer un paiement
-    public function destroy(string $id)
+    public function update(Request $request, $id)
     {
-        $paiement = Paiement::findOrFail($id);
+        $paiement = Paiement::find($id);
+        if(!$paiement) return response()->json(['message' => 'Paiement non trouvé'], 404);
+
+        $paiement->update($request->all());
+        return response()->json($paiement);
+    }
+
+    public function destroy($id)
+    {
+        $paiement = Paiement::find($id);
+        if(!$paiement) return response()->json(['message' => 'Paiement non trouvé'], 404);
+
         $paiement->delete();
-        return response()->json(['message'=>'Paiement supprimé'],200);
+        return response()->json(['message' => 'Paiement supprimé']);
     }
 }

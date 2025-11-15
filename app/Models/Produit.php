@@ -14,10 +14,7 @@ class Produit extends Model
         return $this->belongsTo(Categorie::class,'numCategorie');
     }
 
-    public function detailPanier(){
-        return $this->hasOne(DetailPanier::class,'numProduit');
-    }
-
+   
 
     public function detailCommande(){
         return $this->hasOne(DetailCommande::class,'numProduit');

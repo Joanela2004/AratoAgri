@@ -6,19 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class Livraison extends Model
 {
-protected $primaryKey='numLivraison';
-protected $fillable=['numCommande',
+    protected $primaryKey = 'numLivraison';
+    protected $fillable = [
+        'numCommande',
+        'lieuLivraison',
         'transporteur',
         'referenceColis',
+        'fraisLivraison',
         'contactTransporteur',
-        'lieuLivraison',
         'dateExpedition',
         'dateLivraison',
-        'statutLivraison',
-    'fraisLivraison'];
-public function commande()
-{
-return $this->belongsTo(Commande::class,'numCommande');
-}
+        'statutLivraison'
+    ];
 
+    // Livraison liée à une commande
+    public function commande()
+    {
+        return $this->belongsTo(Commande::class, 'numCommande');
+    }
 }

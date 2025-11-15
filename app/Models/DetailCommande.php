@@ -6,16 +6,26 @@ use Illuminate\Database\Eloquent\Model;
 
 class DetailCommande extends Model
 {
-protected $primaryKey ='numDetailCommande';
-protected $table='detail_commandes';
-protected $fillable=['numCommande','numProduit','quantite','prixUnitaire','sousTotal'];
+    protected $primaryKey = 'numDetailCommande';
+    protected $table = 'detail_commandes';
+    protected $fillable = [
+        'numCommande',
+        'numProduit',
+        'poids',
+        'decoupe',
+        'prixUnitaire',
+        'sousTotal'
+    ];
 
-//un ou plusieurs detailCommande appartient a un commande
-public function commande(){
-    return $this->belongsTo(Commande::class,'numCommande');
-}
-//un detailCommande appartient un produit
-public function produit(){
-    return $this->belongsTo(Produit::class,'numProduit');
-}    
+    // Appartient à une commande
+    public function commande()
+    {
+        return $this->belongsTo(Commande::class, 'numCommande');
+    }
+
+    // Appartient à un produit
+    public function produit()
+    {
+        return $this->belongsTo(Produit::class, 'numProduit');
+    }
 }

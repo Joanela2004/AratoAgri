@@ -6,17 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class Paiement extends Model
 {
-    protected $primaryKey='numPaiement';
-    protected $fillable=['numCommande','numModePaiement','statut','datePaiement','montantApayer'];
-    
-    
-    //un paiement appartient a une commande
-    public function commande(){
-        return $this->belongsTo(Commande::class,'numCommande');
+    protected $primaryKey = 'numPaiement';
+    protected $fillable = [
+        'numCommande',
+        'numModePaiement',
+        'montantApayer',
+        'statut',
+        'datePaiement'
+    ];
+
+    // Paiement lié à une commande
+    public function commande()
+    {
+        return $this->belongsTo(Commande::class, 'numCommande');
     }
-    
-    //un paiement utilise un mode de paiement
-    public function modePaiement(){
-        return $this->belongsTo(ModePaiement::class,'numModePaiement');
+
+    // Paiement réalisé via un mode de paiement
+    public function mode_paiement()
+    {
+        return $this->belongsTo(ModePaiement::class, 'numModePaiement');
     }
 }

@@ -27,10 +27,7 @@ class Utilisateur extends Authenticatable
         $this->attributes['motDePasse'] = Hash::needsRehash($value) ? Hash::make($value) : $value;
     }
 
-    public function paniers()
-    {
-        return $this->hasMany(Panier::class, 'numUtilisateur');
-    }
+   
 
     public function commandes()
     {

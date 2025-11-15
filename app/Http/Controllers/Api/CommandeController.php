@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\Commande;
-use App\Models\Panier;
 use App\Models\DetailCommande;
 use App\Models\Paiement;
 use App\Models\Livraison;
@@ -20,6 +21,7 @@ class CommandeController extends Controller
         $commandes = Commande::with(['detailCommandes.produit','livraison','paiement','mode_paiement'])
             ->where('numUtilisateur', auth()->id())
             ->get();
+
         return response()->json($commandes, 200);
     }
 
@@ -29,95 +31,123 @@ class CommandeController extends Controller
         $commande = Commande::with(['detailCommandes.produit','livraison','paiement','mode_paiement'])
             ->where('numUtilisateur', auth()->id())
             ->findOrFail($id);
+
         return response()->json($commande, 200);
     }
 
     // Liste de toutes les commandes (admin)
     public function index()
     {
-        $commandes = Commande::with(['utilisateur','detailCommandes.produit','livraison','paiement','mode_paiement'])
-            ->get();
+        $commandes = Commande::with(['utilisateur','detailCommandes.produit','livraison','paiement','mode_paiement'])->get();
+
         return response()->json($commandes, 200);
     }
 
-    // Créer une commande à partir du panier
+    // Créer une commande depuis le panier envoyé par le front
     public function store(Request $request)
     {
         $request->validate([
-            'numModePaiement'=>'required|exists:mode_paiements,numModePaiement',
-            'adresseDeLivraison'=>'required|string|max:255',
-            'payerLivraison' => 'boolean',
-            'statut'=>'required|in:en cours,récu'
+            'numModePaiement'       => 'required|exists:mode_paiements,numModePaiement',
+            'adresseDeLivraison'    => 'required|string|max:255',
+            'payerLivraison'        => 'boolean',
+            'statut'                => 'required|in:en cours,récu',
+            'panier'                => 'required|array|min:1',
+            'panier.*.numProduit'   => 'required|exists:produits,numProduit',
+            'panier.*.poids'        => 'required|numeric|min:0.01',
+            'panier.*.prix'         => 'required|numeric|min:0'
         ]);
 
         $userId = auth()->id();
-        $panier = Panier::with('detailPaniers.produit')->where('numUtilisateur', $userId)->first();
+        $panier = $request->panier;
 
-        if (!$panier || $panier->detailPaniers->isEmpty()) {
-            return response()->json(['error'=>'Panier vide ou inexistant'],400);
+        // Calculs
+        $montantProduit = 0;
+        $poidsTotal = 0;
+        foreach ($panier as $item) {
+            $montantProduit += $item['prix'] * $item['poids'];
+            $poidsTotal += $item['poids'];
         }
 
-        $montantProduit = $panier->detailPaniers->sum(fn($i) => $i->produit->prix * $i->poids);
-        $poidsTotal = $panier->detailPaniers->sum('poids');
-
-        $fraisLivraison = FraisLivraison::where('poidsMin','<=',$poidsTotal)
-            ->where('poidsMax','>=',$poidsTotal)
+        $fraisLivraison = FraisLivraison::where('poidsMin', '<=', $poidsTotal)
+            ->where('poidsMax', '>=', $poidsTotal)
             ->first();
 
-        if(!$fraisLivraison){
-            return response()->json(['error'=>'Aucun tarif de livraison pour ce poids'],400);
+        if (!$fraisLivraison) {
+            return response()->json(['error' => 'Aucun tarif de livraison pour ce poids'], 400);
         }
 
-        $montantfraisLivraison = $fraisLivraison->frais;
+        $montantFrais = $fraisLivraison->frais;
         $payerLivraison = $request->boolean('payerLivraison', false);
-        $montantTotal = $payerLivraison ? $montantProduit + $montantfraisLivraison : $montantProduit;
+        $montantTotal = $montantProduit + ($payerLivraison ? $montantFrais : 0);
 
         $modePaiement = ModePaiement::findOrFail($request->numModePaiement);
-        if ($modePaiement->solde < $montantProduit) {
-            return response()->json(['error'=>'Solde insuffisant'],401);
+
+        if ($modePaiement->solde < $montantTotal) {
+            return response()->json(['error' => 'Solde insuffisant'], 401);
         }
 
-        $modePaiement->solde -= $montantProduit;
-        $modePaiement->save();
-        $statutPaiement = 'effectué';
+        DB::beginTransaction();
+        try {
+            // Débit du compte si paiement total immédiat
+            if ($payerLivraison) {
+                $modePaiement->solde -= $montantTotal;
+                $modePaiement->save();
+            }
 
-        $commande = Commande::create([
-            'numUtilisateur'=>$userId,
-            'numModePaiement'=>$request->numModePaiement,
-            'dateCommande'=>now(),
-            'statut'=>$request->statut,
-            'montantTotal'=>$montantTotal,
-            'adresseDeLivraison'=>$request->adresseDeLivraison,
-            'payerLivraison'=>$payerLivraison
-        ]);
-
-        foreach ($panier->detailPaniers as $detailPanier) {
-            DetailCommande::create([
-                'numCommande' => $commande->numCommande,
-                'numProduit' => $detailPanier->numProduit,
-                'poids' => $detailPanier->poids,
-                'prixUnitaire' => $detailPanier->produit->prix,
-                'sousTotal' => $detailPanier->produit->prix * $detailPanier->poids,
+            // Création commande
+            $commande = Commande::create([
+                'numUtilisateur'     => $userId,
+                'numModePaiement'    => $request->numModePaiement,
+                'dateCommande'       => now(),
+                'statut'             => $request->statut,
+                'montantTotal'       => $montantTotal,
+                'adresseDeLivraison' => $request->adresseDeLivraison,
+                'payerLivraison'     => $payerLivraison
             ]);
+
+            // Création des détails de commande
+            foreach ($panier as $item) {
+                DetailCommande::create([
+                    'numCommande'  => $commande->numCommande,
+                    'numProduit'   => $item['numProduit'],
+                    'poids'        => $item['poids'],
+                    'decoupe'      => $item['decoupe'] ?? 'entière',
+                    'prixUnitaire' => $item['prix'],
+                    'sousTotal'    => $item['prix'] * $item['poids'],
+                ]);
+            }
+
+            // Paiement initial (si frais livré maintenant)
+            if ($payerLivraison) {
+                Paiement::create([
+                    'numCommande'     => $commande->numCommande,
+                    'numModePaiement' => $request->numModePaiement,
+                    'montantApayer'   => $montantTotal,
+                    'statut'          => 'effectué',
+                    'datePaiement'    => now(),
+                ]);
+            }
+
+            // Création livraison
+            Livraison::create([
+                'numCommande'        => $commande->numCommande,
+                'lieuLivraison'      => $request->adresseDeLivraison,
+                'transporteur'       => 'Arato Express',
+                'referenceColis'     => 'COLIS-' . strtoupper(Str::random(8)),
+                'fraisLivraison'     => $montantFrais,
+                'contactTransporteur'=> null,
+                'dateExpedition'     => $payerLivraison ? now() : null,
+                'dateLivraison'      => null,
+                'statutLivraison'    => $payerLivraison ? 'en cours' : 'en préparation',
+            ]);
+
+            DB::commit();
+
+            return response()->json($commande->load(['detailCommandes.produit','livraison','paiement','mode_paiement']), 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Erreur lors de la création de la commande', 'msg' => $e->getMessage()], 500);
         }
-
-        Paiement::create([
-            'numCommande'=>$commande->numCommande,
-            'numModePaiement'=>$request->numModePaiement,
-            'montantApayer'=>$montantTotal,
-            'statut'=>$statutPaiement,
-            'datePaiement'=>now()
-        ]);
-
-        Livraison::create([
-            'numCommande'=>$commande->numCommande,
-            'lieuLivraison'=>$commande->adresseDeLivraison,
-            'fraisLivraison'=>$montantfraisLivraison,
-        ]);
-
-        $panier->delete();
-
-        return response()->json($commande->load(['utilisateur','detailCommandes.produit','livraison','paiement','mode_paiement']),201);
     }
 
     // Afficher une commande par ID (admin)
@@ -125,39 +155,64 @@ class CommandeController extends Controller
     {
         $commande = Commande::with(['utilisateur','detailCommandes.produit','livraison','paiement','mode_paiement'])
             ->findOrFail($id);
+
         return response()->json($commande, 200);
     }
 
-    // Mise à jour d'une commande par le client
+    // Mise à jour d'une commande par le client (paiement du frais de livraison après commande)
     public function updateClient(Request $request, string $id)
     {
         $commande = Commande::where('numUtilisateur', auth()->id())->findOrFail($id);
         $livraison = $commande->livraison;
-
-        if (in_array($livraison->statutLivraison, ['livré(e)s'])) {
-            return response()->json(['error'=>'Commande déjà livrée, modification impossible'],403);
-        }
+        $modePaiement = $commande->mode_paiement;
 
         $request->validate([
-            'adresseDeLivraison'=>'sometimes|string|max:255',
-            'payerLivraison'=>'sometimes|boolean'
+            'adresseDeLivraison' => 'sometimes|string|max:255',
+            'payerLivraison'     => 'sometimes|boolean'
         ]);
 
+        // Paiement du frais de livraison après commande
         if ($request->boolean('payerLivraison') && !$commande->payerLivraison) {
-            $modePaiement = $commande->mode_paiement;
             $frais = $livraison->fraisLivraison;
 
             if ($modePaiement->solde < $frais) {
                 return response()->json(['error'=>'Solde insuffisant pour payer la livraison'],401);
             }
 
-            $modePaiement->solde -= $frais;
-            $modePaiement->save();
-            $commande->payerLivraison = true;
-            $livraison->update(['statutLivraison'=>'en cours']);
+            DB::beginTransaction();
+            try {
+                // Débit du compte
+                $modePaiement->solde -= $frais;
+                $modePaiement->save();
+
+                // Marquer la livraison comme payée et en cours
+                $commande->payerLivraison = true;
+                $commande->save();
+
+                $livraison->update([
+                    'statutLivraison' => 'en cours',
+                    'dateExpedition'  => now()
+                ]);
+
+                // Créer un paiement supplémentaire pour le frais de livraison
+                Paiement::create([
+                    'numCommande'     => $commande->numCommande,
+                    'numModePaiement' => $modePaiement->numModePaiement,
+                    'montantApayer'   => $frais,
+                    'statut'          => 'effectué',
+                    'datePaiement'    => now(),
+                ]);
+
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['error' => 'Erreur lors du paiement du frais de livraison', 'msg' => $e->getMessage()], 500);
+            }
         }
 
+        // Mise à jour de l'adresse si nécessaire
         $commande->update($request->only(['adresseDeLivraison','payerLivraison']));
+
         return response()->json($commande->load(['detailCommandes.produit','livraison','paiement','mode_paiement']),200);
     }
 
@@ -166,6 +221,7 @@ class CommandeController extends Controller
     {
         $commande = Commande::where('numUtilisateur', auth()->id())->findOrFail($id);
         $commande->delete();
+
         return response()->json(['message'=>'Commande supprimée'],200);
     }
 }

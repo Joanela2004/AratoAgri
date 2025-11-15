@@ -3,46 +3,59 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\ModePaiement;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class ModePaiementController extends Controller
 {
-    // Lister tous les modes de paiement
     public function index()
     {
-        return response()->json(ModePaiement::all(),200);
+        return response()->json(ModePaiement::all());
     }
 
-    // Créer un mode de paiement
+    public function show($id)
+    {
+        $mode = ModePaiement::find($id);
+        if(!$mode) return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
+        return response()->json($mode);
+    }
+
     public function store(Request $request)
     {
-        $request->validate(['nomModePaiement'=>'required|string|max:100']);
-        $modePaiement = ModePaiement::create($request->all());
-        return response()->json($modePaiement,201);
+        $validator = Validator::make($request->all(), [
+            'nomModePaiement' => 'required|string|max:100',
+            'solde' => 'nullable|numeric',
+            'numeroCarte' => 'nullable|string|max:20',
+            'nomTitulaire' => 'nullable|string|max:100',
+            'dateExpiration' => 'nullable|date',
+            'numeroCompte' => 'nullable|string|max:50',
+            'typeMobile' => 'nullable|string|max:50', 
+        ]);
+
+        if($validator->fails()){
+            return response()->json($validator->errors(), 422);
+        }
+
+        $mode = ModePaiement::create($request->all());
+        return response()->json($mode, 201);
     }
 
-    // Afficher un mode de paiement
-    public function show(string $id)
+    public function update(Request $request, $id)
     {
-        $modePaiement = ModePaiement::findOrFail($id);
-        return response()->json($modePaiement,200);
+        $mode = ModePaiement::find($id);
+        if(!$mode) return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
+
+        $mode->update($request->all());
+        return response()->json($mode);
     }
 
-    // Modifier un mode de paiement
-    public function update(Request $request, string $id)
+    public function destroy($id)
     {
-        $modePaiement = ModePaiement::findOrFail($id);
-        $request->validate(['nomModePaiement'=>'sometimes|string|max:100']);
-        $modePaiement->update($request->all());
-        return response()->json($modePaiement,200);
-    }
+        $mode = ModePaiement::find($id);
+        if(!$mode) return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
 
-    // Supprimer un mode de paiement
-    public function destroy(string $id)
-    {
-        $modePaiement = ModePaiement::findOrFail($id);
-        $modePaiement->delete();
-        return response()->json(['message'=>'Mode de paiement supprimé'],200);
+        $mode->delete();
+        return response()->json(['message' => 'Mode de paiement supprimé']);
     }
 }
