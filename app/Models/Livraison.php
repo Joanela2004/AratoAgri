@@ -19,7 +19,6 @@ class Livraison extends Model
         'statutLivraison'
     ];
 
-    // Livraison liée à une commande
     public function commande()
     {
         return $this->belongsTo(Commande::class, 'numCommande');

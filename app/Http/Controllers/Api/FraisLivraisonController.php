@@ -5,80 +5,88 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\FraisLivraison;
+
 class FraisLivraisonController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-    return response()->json(FraisLivraison::all(), 200);
+        return response()->json(FraisLivraison::all(), 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-$validated = $request->validate([
+        $validated = $request->validate([
             'poidsMin' => 'required|numeric|min:0',
             'poidsMax' => 'required|numeric|gt:poidsMin',
-            'frais' => 'required|numeric|min:0',
+            'frais'    => 'required|numeric|min:0',
         ]);
 
-        $frais = FraisLivraison::create($validated);
-        return response()->json(['message' => 'Frais de livraison ajouté', 'data' => $frais], 201);
+        $intervalMin = $validated['poidsMin'];
+        $intervalMax = $validated['poidsMax'];
+        $frais       = $validated['frais'];
 
+        $increment = $intervalMax - $intervalMin + 1;
+
+        $ranges = [];
+        $count = 1;
+
+        for ($min = $intervalMin; $min <= 1000; $min += $increment) {
+            $max = $min + $increment - 1;
+            if ($max > 1000) $max = 1000;
+            $ranges[] = [
+                'poidsMin' => $min,
+                'poidsMax' => $max,
+                'frais'    => $frais * $count
+            ];
+            $count++;
+        }
+
+        foreach ($ranges as $r) {
+            FraisLivraison::create($r);
+        }
+
+        return response()->json([
+            'message' => 'Tranches générées avec succès',
+            'data' => $ranges
+        ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show($id)
     {
-        $frais = FraisLivraison::find($numFrais);
-        if(!$frais){
+        $frais = FraisLivraison::find($id);
+        if (!$frais) {
             return response()->json(['message'=>'frais non trouvé'],400);
         }
         return response()->json($frais);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        $frais = FraisLivraison::find($numFrais);
+        $frais = FraisLivraison::find($id);
         if (!$frais) {
-            return response()->json(['message' => 'Frais non trouvé'], 404);
+            return response()->json(['message'=>'Frais non trouvé'],404);
         }
-        $validated=$request->validate([
+
+        $validated = $request->validate([
             'poidsMin' => 'sometimes|numeric|min:0',
             'poidsMax' => 'sometimes|numeric|gt:poidsMin',
-            'frais' => 'sometimes|numeric|min:0',
+            'frais'    => 'sometimes|numeric|min:0',
         ]);
 
         $frais->update($validated);
-        return response()->json([
-            'message'=>'Frais de livraison mis a jour avec succes'
-        ],200);
 
+        return response()->json(['message'=>'Frais mis à jour'],200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        $frais = FraisLivraison::find($numFrais);
-
+        $frais = FraisLivraison::find($id);
         if (!$frais) {
-            return response()->json(['message' => 'Frais non trouvé'], 404);
+            return response()->json(['message'=>'Frais non trouvé'],404);
         }
 
         $frais->delete();
 
-        return response()->json(['message' => 'Frais supprimé avec succès']);
-
+        return response()->json(['message' => 'Frais supprimé']);
     }
 }

@@ -46,7 +46,7 @@ Route::get('mesCommandes', [CommandeController::class,'indexClient']);
 Route::post('commandes', [CommandeController::class,'store']);
 Route::get('mesCommandes/{id}', [CommandeController::class,'showClient']);
 Route::put('mesCommandes/{id}', [CommandeController::class,'updateClient']);
-Route::get('mesLivraisons', [LivraisonController::class,'indexClient']);
+Route::get('frais_livraisons', [FraisLivraisonController::class,'index']);
 Route::get('mesLivraisons/{id}', [LivraisonController::class,'showClient']);
 
 // Admin
@@ -59,8 +59,8 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function(){
     // Ressources
     Route::apiResource('commandes', CommandeController::class);
     Route::apiResource('livraisons', LivraisonController::class);
-    Route::apiResource('frais_livraisons', FraisLivraisonController::class);
-    Route::apiResource('detail_commandes', DetailCommandeController::class);
+     Route::apiResource('frais_livraisons', FraisLivraisonController::class)->except(['index']); 
+        Route::apiResource('detail_commandes', DetailCommandeController::class);
     Route::apiResource('paiements', PaiementController::class);
     Route::apiResource('utilisateurs', UtilisateurController::class);
     Route::apiResource('mode_paiements', ModePaiementController::class);
