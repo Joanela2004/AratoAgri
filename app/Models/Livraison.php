@@ -9,7 +9,7 @@ class Livraison extends Model
     protected $primaryKey = 'numLivraison';
     protected $fillable = [
         'numCommande',
-        'lieuLivraison',
+        'numLieu',
         'transporteur',
         'referenceColis',
         'fraisLivraison',
@@ -22,5 +22,10 @@ class Livraison extends Model
     public function commande()
     {
         return $this->belongsTo(Commande::class, 'numCommande');
+    }
+
+    public function lieu()
+    {
+        return $this->belongsTo(LieuLivraison::class, 'numLieu');
     }
 }

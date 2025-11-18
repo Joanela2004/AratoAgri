@@ -7,43 +7,42 @@ use Illuminate\Database\Eloquent\Model;
 class Commande extends Model
 {
     protected $primaryKey = 'numCommande';
+
     protected $fillable = [
         'numUtilisateur',
         'numModePaiement',
-        'dateCommande',
+        'numLieu',
         'statut',
+        'sousTotal',
+        'fraisLivraison',
         'montantTotal',
-        'adresseDeLivraison',
-        'payerLivraison'
+        'payerLivraison',
+        'codePromo',
+        'dateCommande'
     ];
 
-    // Relation avec l'utilisateur
     public function utilisateur()
     {
         return $this->belongsTo(Utilisateur::class, 'numUtilisateur');
     }
 
-    // Une commande a plusieurs détails de commande
-    public function detailCommandes()
+    public function modePaiement()
     {
-        return $this->hasMany(DetailCommande::class, 'numCommande');
+        return $this->belongsTo(ModePaiement::class, 'numModePaiement');
     }
 
-    // Une commande a un paiement ou plusieurs paiements (si frais livraison payé après)
-    public function paiement()
+    public function lieu()
     {
-        return $this->hasMany(Paiement::class, 'numCommande');
+        return $this->belongsTo(Lieu::class, 'numLieu');
     }
 
-    // Une commande possède une livraison
-    public function livraison()
+    public function livraisons()
     {
         return $this->hasOne(Livraison::class, 'numCommande');
     }
 
-    // Une commande appartient à un mode de paiement
-    public function mode_paiement()
+    public function detailCommandes()
     {
-        return $this->belongsTo(ModePaiement::class, 'numModePaiement');
+        return $this->hasMany(DetailCommande::class, 'numCommande');
     }
 }

@@ -13,10 +13,9 @@ return new class extends Migration
             $table->foreignId('numCommande')
                   ->constrained('commandes','numCommande')
                   ->onDelete('cascade');
-            $table->string('lieuLivraison',100)->nullable();
-            $table->string('transporteur')->default('à déterminer');
+            $table->string('transporteur')->nullable();
             $table->string('referenceColis')->nullable();
-            $table->decimal('fraisLivraison',14,2)->default(0.00);
+            $table->decimal('fraisLivraison',14,2);
             $table->string('contactTransporteur')->nullable();
             $table->dateTime('dateExpedition')->nullable();
             $table->dateTime('dateLivraison')->nullable();

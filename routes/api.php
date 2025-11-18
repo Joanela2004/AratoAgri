@@ -14,7 +14,8 @@ use App\Http\Controllers\Api\{
     DetailPanierController,
     DetailCommandeController,
     FraisLivraisonController,
-    AuthController
+    AuthController,
+    LieuLivraisonController
 };
 
 // Auth
@@ -32,6 +33,7 @@ Route::get('categories', [CategorieController::class, 'index']);
 Route::get('categories/{id}', [CategorieController::class, 'show']);
 Route::get('promotions', [PromotionController::class, 'index']);
 Route::get('promotions/{id}', [PromotionController::class, 'show']);
+Route::get('lieux-livraison', [LieuLivraisonController::class, 'index']); 
 
 Route::get('/test', function () {
     return response()->json(['message' => 'API working!']);
@@ -59,12 +61,13 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function(){
     // Ressources
     Route::apiResource('commandes', CommandeController::class);
     Route::apiResource('livraisons', LivraisonController::class);
-     Route::apiResource('frais_livraisons', FraisLivraisonController::class)->except(['index']); 
-        Route::apiResource('detail_commandes', DetailCommandeController::class);
+    Route::apiResource('frais_livraisons', FraisLivraisonController::class)->except(['index']); 
+    Route::apiResource('detail_commandes', DetailCommandeController::class);
     Route::apiResource('paiements', PaiementController::class);
     Route::apiResource('utilisateurs', UtilisateurController::class);
     Route::apiResource('mode_paiements', ModePaiementController::class);
     Route::apiResource('produits', ProduitController::class)->except(['index', 'show']);
     Route::apiResource('articles', ArticleController::class)->except(['index', 'show']);
     Route::apiResource('promotions', PromotionController::class)->except(['index', 'show']);
+    Route::apiResource('lieux_livraison', LieuLivraisonController::class); 
 });

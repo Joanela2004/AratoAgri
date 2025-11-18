@@ -4,68 +4,80 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Livraison;
+use App\Models\Commande;
 
 class LivraisonController extends Controller
 {
-    // Liste des livraisons pour le client connecté
-    public function indexClient()
-    {
-        $livraisons = Livraison::with('commande')
-            ->whereHas('commande', fn($q) => $q->where('numUtilisateur', auth()->id()))
-            ->get();
-        return response()->json($livraisons,200);
-    }
 
-    // Liste de toutes les livraisons (admin)
     public function index()
     {
-        $livraisons = Livraison::with('commande')->get();
-        return response()->json($livraisons,200);
+        $livraisons = Livraison::with(['commande.detailCommandes.produit','commande.mode_paiement','commande.lieu'])->get();
+        return response()->json($livraisons, 200);
     }
 
-    // Afficher une livraison spécifique du client
-    public function showClient(string $id)
+    public function indexClient()
     {
-        $livraison = Livraison::with('commande')
-            ->whereHas('commande', fn($q) => $q->where('numUtilisateur', auth()->id()))
-            ->findOrFail($id);
-        return response()->json($livraison,200);
+        $livraisons = Livraison::with(['commande.detailCommandes.produit','commande.mode_paiement','commande.lieu'])
+            ->whereHas('commande', function($q){
+                $q->where('numUtilisateur', auth()->id());
+            })
+            ->get();
+        return response()->json($livraisons, 200);
     }
 
-    // Mise à jour d'une livraison
-    public function update(Request $request, string $id)
+    public function showClient($id)
+    {
+        $livraison = Livraison::with(['commande.detailCommandes.produit','commande.mode_paiement','commande.lieu'])
+            ->whereHas('commande', function($q){
+                $q->where('numUtilisateur', auth()->id());
+            })
+            ->findOrFail($id);
+        return response()->json($livraison, 200);
+    }
+
+    // Mettre à jour le statut d'une livraison
+    public function updateStatus(Request $request, $id)
     {
         $livraison = Livraison::findOrFail($id);
 
         $request->validate([
-            'statutLivraison' => 'required|string|in:en préparation,en cours,livré(e)s,annulée',
-            'transporteur' => 'sometimes|string|max:100',
-            'contactTransporteur' => 'sometimes|string|max:20',
-            'referenceColis' => 'sometimes|string|max:50',
-            'lieuLivraison'=>'sometimes|string|max:100',
-            'fraisLivraison'=>'sometimes|numeric'
+            'statutLivraison' => 'required|in:en préparation,en cours,livré'
         ]);
 
-        $livraison->update([
-            'statutLivraison' => $request->statutLivraison,
-            'dateExpedition' => $request->statutLivraison === 'en cours' && !$livraison->dateExpedition ? now() : $livraison->dateExpedition,
-            'dateLivraison' => $request->statutLivraison === 'livré(e)s' && !$livraison->dateLivraison ? now() : $livraison->dateLivraison,
-            'transporteur' => $request->input('transporteur', $livraison->transporteur),
-            'contactTransporteur' => $request->input('contactTransporteur', $livraison->contactTransporteur),
-            'referenceColis' => $request->input('referenceColis', $livraison->referenceColis),
-            'lieuLivraison' => $request->input('lieuLivraison', $livraison->lieuLivraison),
-            'fraisLivraison' => $request->input('fraisLivraison', $livraison->fraisLivraison),
-        ]);
+        DB::beginTransaction();
+        try {
+            $livraison->statutLivraison = $request->statutLivraison;
 
-        return response()->json(['message'=>'Livraison mise à jour','livraison'=>$livraison],200);
+            if ($request->statutLivraison === 'en cours' && !$livraison->dateExpedition) {
+                $livraison->dateExpedition = now();
+            }
+
+            if ($request->statutLivraison === 'livré') {
+                $livraison->dateLivraison = now();
+            }
+
+            $livraison->save();
+            DB::commit();
+
+            return response()->json($livraison->load(['commande.detailCommandes.produit','commande.mode_paiement','commande.lieu']), 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error'=>'Erreur lors de la mise à jour de la livraison','msg'=>$e->getMessage()],500);
+        }
     }
-
-    // Supprimer une livraison
-    public function destroy(string $id)
+    public function destroy($id)
     {
         $livraison = Livraison::findOrFail($id);
-        $livraison->delete();
-        return response()->json(['message'=>'Livraison supprimée'],200);
+        DB::beginTransaction();
+        try {
+            $livraison->delete();
+            DB::commit();
+            return response()->json(['message'=>'Livraison supprimée'],200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error'=>'Erreur lors de la suppression de la livraison','msg'=>$e->getMessage()],500);
+        }
     }
 }

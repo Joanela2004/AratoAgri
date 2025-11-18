@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class DetailCommande extends Model
 {
-    protected $primaryKey = 'numDetailCommande';
-    protected $table = 'detail_commandes';
     protected $fillable = [
         'numCommande',
         'numProduit',
@@ -17,15 +15,13 @@ class DetailCommande extends Model
         'sousTotal'
     ];
 
-    // Appartient à une commande
     public function commande()
     {
-        return $this->belongsTo(Commande::class, 'numCommande');
+        return $this->belongsTo(Commande::class, 'numCommande', 'numCommande');
     }
 
-    // Appartient à un produit
     public function produit()
     {
-        return $this->belongsTo(Produit::class, 'numProduit');
+        return $this->belongsTo(Produit::class, 'numProduit', 'numProduit');
     }
 }
