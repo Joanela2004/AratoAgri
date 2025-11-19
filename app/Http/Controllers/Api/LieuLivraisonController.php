@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -37,10 +36,11 @@ class LieuLivraisonController extends Controller
         $lieu = LieuLivraison::find($id);
         if (!$lieu) return response()->json(['message' => 'Lieu non trouvé'], 404);
 
-        $validated = $request->validate([
-            'nomLieu' => 'sometimes|string|max:100|unique:lieux_livraison,nomLieu,' . $id,
-            'fraisLieu' => 'sometimes|numeric|min:0'
-        ]);
+      $validated = $request->validate([
+    'nomLieu' => 'sometimes|string|max:100|unique:lieux_livraison,nomLieu,' . $id . ',numLieu',
+    'fraisLieu' => 'sometimes|numeric|min:0'
+]);
+
 
         $lieu->update($validated);
 

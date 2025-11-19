@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\{
     ProduitController,
@@ -10,8 +11,6 @@ use App\Http\Controllers\Api\{
     CommandeController,
     PaiementController,
     LivraisonController,
-    PanierController,
-    DetailPanierController,
     DetailCommandeController,
     FraisLivraisonController,
     AuthController,
@@ -22,7 +21,7 @@ use App\Http\Controllers\Api\{
 Route::post('/register',[AuthController::class,'register']);
 Route::post('/login',[AuthController::class,'login']);
 Route::post('/logout',[AuthController::class,'logout']);
-Route::post('/admin/change-password', [AuthController::class, 'changePassword']);
+Route::post('/change-password', [AuthController::class, 'changePassword']);
 
 // Public
 Route::get('produits', [ProduitController::class, 'index']);
@@ -33,15 +32,8 @@ Route::get('categories', [CategorieController::class, 'index']);
 Route::get('categories/{id}', [CategorieController::class, 'show']);
 Route::get('promotions', [PromotionController::class, 'index']);
 Route::get('promotions/{id}', [PromotionController::class, 'show']);
-Route::get('lieux-livraison', [LieuLivraisonController::class, 'index']); 
-
-Route::get('/test', function () {
-    return response()->json(['message' => 'API working!']);
-});
-
-// Panier
-Route::apiResource('paniers', PanierController::class);
-Route::apiResource('detail_paniers', DetailPanierController::class);
+Route::get('lieux_livraison', [LieuLivraisonController::class, 'index']);
+Route::get('/mode_paiements/actifs', [ModePaiementController::class, 'actifs']);
 
 // Commandes & Livraisons client
 Route::get('mesCommandes', [CommandeController::class,'indexClient']);
@@ -53,21 +45,28 @@ Route::get('mesLivraisons/{id}', [LivraisonController::class,'showClient']);
 
 // Admin
 Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function(){
-    // CRUD catégories
-    Route::post('categories', [CategorieController::class, 'store']);
-    Route::put('categories/{id}', [CategorieController::class, 'update']);
-    Route::delete('categories/{id}', [CategorieController::class, 'destroy']);
 
-    // Ressources
+    Route::get('clients/avec-commandes', [UtilisateurController::class, 'clientsAvecCommandes']);
+
+    Route::post('send-email', [PromotionController::class, 'sendEmailToUsers']);
+
+         // Paiements
+    Route::get('paiements', [PaiementController::class, 'index']);
+    Route::post('paiements', [PaiementController::class, 'store']);
+    Route::get('paiements/{id}', [PaiementController::class, 'show']);
+    Route::put('paiements/{id}', [PaiementController::class, 'update']);
+    Route::delete('paiements/{id}', [PaiementController::class, 'destroy']);
+
+    
     Route::apiResource('commandes', CommandeController::class);
     Route::apiResource('livraisons', LivraisonController::class);
-    Route::apiResource('frais_livraisons', FraisLivraisonController::class)->except(['index']); 
+    Route::apiResource('frais_livraisons', FraisLivraisonController::class)->except(['index']);
     Route::apiResource('detail_commandes', DetailCommandeController::class);
-    Route::apiResource('paiements', PaiementController::class);
     Route::apiResource('utilisateurs', UtilisateurController::class);
     Route::apiResource('mode_paiements', ModePaiementController::class);
-    Route::apiResource('produits', ProduitController::class)->except(['index', 'show']);
+    Route::apiResource('produits', ProduitController::class)->except(['index']);
+     Route::apiResource('categories',CategorieController::class)->except(['index']);
     Route::apiResource('articles', ArticleController::class)->except(['index', 'show']);
     Route::apiResource('promotions', PromotionController::class)->except(['index', 'show']);
-    Route::apiResource('lieux_livraison', LieuLivraisonController::class); 
+    Route::apiResource('lieux_livraison', LieuLivraisonController::class);
 });

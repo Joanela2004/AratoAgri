@@ -23,7 +23,8 @@ class PromotionController extends Controller
             'dateDebut' => 'required|date',
             'dateFin' => 'required|date|after_or_equal:dateDebut',
             'statutPromotion' => 'required|string|max:50',
-            'montantMinimum' => 'required|numeric|min:0',
+            'montantMinimum' => 'nullable|numeric|min:0',
+
         ]);
 
         $promotion = Promotion::create($request->all());
@@ -48,7 +49,8 @@ class PromotionController extends Controller
             'dateDebut' => 'sometimes|date',
             'dateFin' => 'sometimes|date|after_or_equal:dateDebut',
             'statutPromotion' => 'sometimes|string|max:50',
-            'montantMinimum' => 'sometimes|numeric|min:0',
+            'montantMinimum' => 'nullable|numeric|min:0',
+
         ]);
 
         $promotion->update($request->all());
@@ -61,4 +63,20 @@ class PromotionController extends Controller
         $promotion->delete();
         return response()->json(null, 204);
     }
+    public function sendEmailToUsers()
+{
+    $today = now();
+    $promotions = Promotion::where('dateFin', '>=', $today)
+                            ->where('statutPromotion', 'Active')
+                            ->get();
+
+    $users = User::all();
+
+    foreach ($users as $user) {
+        Mail::to($user->email)->send(new PromoMail($promotions));
+    }
+
+    return response()->json(['message' => 'E-mails envoyés avec succès'], 200);
+}
+
 }

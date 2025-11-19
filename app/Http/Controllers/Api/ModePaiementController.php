@@ -1,61 +1,121 @@
 <?php
-
+ 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ModePaiement;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class ModePaiementController extends Controller
 {
     public function index()
     {
-        return response()->json(ModePaiement::all());
+        $modes = ModePaiement::all();
+        return response()->json($modes);
     }
 
     public function show($id)
     {
         $mode = ModePaiement::find($id);
-        if(!$mode) return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
+        if (!$mode) {
+            return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
+        }
         return response()->json($mode);
     }
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'nomModePaiement' => 'required|string|max:100',
-            'solde' => 'nullable|numeric',
-            'numeroCarte' => 'nullable|string|max:20',
-            'nomTitulaire' => 'nullable|string|max:100',
-            'dateExpiration' => 'nullable|date',
-            'numeroCompte' => 'nullable|string|max:50',
-            'typeMobile' => 'nullable|string|max:50', 
+            'actif' => 'sometimes',
+            'config' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
         ]);
 
-        if($validator->fails()){
-            return response()->json($validator->errors(), 422);
+        $data = [
+            'nomModePaiement' => $validated['nomModePaiement'],
+                   'actif' => isset($validated['actif']) ? 
+                ($validated['actif'] === 'true' || $validated['actif'] === '1' || $validated['actif'] === true) 
+                : true,
+        ];
+
+            if (isset($validated['config']) && $validated['config'] !== "") {
+            $data['config'] = json_decode($validated['config'], true);
+        } else {
+             $data['config'] = null;
         }
 
-        $mode = ModePaiement::create($request->all());
+        
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('modePaiements', 'public');
+            $data['image'] = $path;
+        }
+
+        $mode = ModePaiement::create($data);
+
         return response()->json($mode, 201);
     }
 
     public function update(Request $request, $id)
     {
         $mode = ModePaiement::find($id);
-        if(!$mode) return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
+        if (!$mode) {
+            return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
+        }
+    $validated = $request->validate([
+            'nomModePaiement' => 'sometimes|string|max:100',
+            'actif' => 'sometimes',
+            'config' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
+        ]);
 
-        $mode->update($request->all());
+        $data = [];
+
+        if (isset($validated['nomModePaiement'])) {
+            $data['nomModePaiement'] = $validated['nomModePaiement'];
+        }
+
+        if (isset($validated['actif'])) {
+                   $data['actif'] = $validated['actif'] === 'true' || $validated['actif'] === '1' || $validated['actif'] === true;
+        }
+
+               if (array_key_exists('config', $validated)) {
+            $data['config'] = $validated['config'] ? json_decode($validated['config'], true) : null;
+        }
+
+        if ($request->hasFile('image')) {
+           
+            if ($mode->image) {
+                Storage::disk('public')->delete($mode->image);
+            }
+            $path = $request->file('image')->store('modePaiements', 'public');
+            $data['image'] = $path;
+        }
+
+        $mode->update($data);
+
         return response()->json($mode);
     }
 
     public function destroy($id)
     {
         $mode = ModePaiement::find($id);
-        if(!$mode) return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
+        if (!$mode) {
+            return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
+        }
+
+        if ($mode->image) {
+            Storage::disk('public')->delete($mode->image);
+        }
 
         $mode->delete();
+
         return response()->json(['message' => 'Mode de paiement supprimé']);
     }
+    public function actifs()
+{
+    return ModePaiement::where('actif', true)->get();
+}
+
 }

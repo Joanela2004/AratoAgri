@@ -64,6 +64,15 @@ class UtilisateurController extends Controller
         $utilisateur->update($request->all());
         return response()->json($utilisateur->load(['commandes','paniers']),200);
     }
+public function clientsAvecCommandes()
+{
+    $clients = Utilisateur::where('role', 'client')
+        ->whereHas('commandes')
+        ->withCount('commandes')
+        ->get();
+
+    return response()->json($clients, 200);
+}
 
     // Supprimer un utilisateur
     public function destroy(string $id)

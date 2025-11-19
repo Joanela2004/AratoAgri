@@ -14,7 +14,7 @@ return new class extends Migration
                   ->constrained('commandes','numCommande')
                   ->onDelete('cascade');
             $table->foreignId('numModePaiement')
-                  ->constrained('mode_paiements','numModePaiement')
+                  ->constrained('modePaiements','numModePaiement')
                   ->onDelete('restrict');
             $table->decimal('montantApayer',14,2);
             $table->enum('statut',['en attente','effectué','échoué'])->default('en attente');
