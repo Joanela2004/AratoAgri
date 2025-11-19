@@ -10,13 +10,12 @@ return new class extends Migration
     {
         Schema::create('commandes', function (Blueprint $table) {
             $table->id('numCommande');
-
             $table->foreignId('numUtilisateur')
                   ->constrained('utilisateurs', 'numUtilisateur')
                   ->onDelete('cascade');
 
             $table->foreignId('numModePaiement')
-                  ->constrained('modePaiements', 'numModePaiement')
+                  ->constrained('mode_Paiements', 'numModePaiement')
                   ->onDelete('restrict');
 
             $table->foreignId('numLieu')
@@ -31,19 +30,11 @@ return new class extends Migration
 
             $table->string('codePromo')->nullable();
             $table->string('statut')->default('en attente');
-
             $table->decimal('sousTotal', 14, 2);
             $table->decimal('fraisLivraison', 14, 2)->default(0);
             $table->decimal('montantTotal', 14, 2);
-
             $table->boolean('payerLivraison')->default(false);
             $table->dateTime('dateCommande')->nullable();
-
-            $table->string('nomPayeur')->nullable();      
-            $table->string('carteDerniers')->nullable();  
-            $table->string('paypalEmail')->nullable();   
-            $table->string('numeroPayeur')->nullable();   
-
             $table->timestamps();
         });
     }

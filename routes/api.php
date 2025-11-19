@@ -14,7 +14,8 @@ use App\Http\Controllers\Api\{
     DetailCommandeController,
     FraisLivraisonController,
     AuthController,
-    LieuLivraisonController
+    LieuLivraisonController,
+    DecoupeController
 };
 
 // Auth
@@ -35,7 +36,6 @@ Route::get('promotions/{id}', [PromotionController::class, 'show']);
 Route::get('lieux_livraison', [LieuLivraisonController::class, 'index']);
 Route::get('/mode_paiements/actifs', [ModePaiementController::class, 'actifs']);
 
-// Commandes & Livraisons client
 Route::get('mesCommandes', [CommandeController::class,'indexClient']);
 Route::post('commandes', [CommandeController::class,'store']);
 Route::get('mesCommandes/{id}', [CommandeController::class,'showClient']);
@@ -43,21 +43,21 @@ Route::put('mesCommandes/{id}', [CommandeController::class,'updateClient']);
 Route::get('frais_livraisons', [FraisLivraisonController::class,'index']);
 Route::get('mesLivraisons/{id}', [LivraisonController::class,'showClient']);
 
-// Admin
 Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function(){
 
     Route::get('clients/avec-commandes', [UtilisateurController::class, 'clientsAvecCommandes']);
 
     Route::post('send-email', [PromotionController::class, 'sendEmailToUsers']);
 
-         // Paiements
+   
     Route::get('paiements', [PaiementController::class, 'index']);
     Route::post('paiements', [PaiementController::class, 'store']);
     Route::get('paiements/{id}', [PaiementController::class, 'show']);
     Route::put('paiements/{id}', [PaiementController::class, 'update']);
     Route::delete('paiements/{id}', [PaiementController::class, 'destroy']);
 
-    
+    Route::apiResource('decoupes', DecoupeController::class);
+
     Route::apiResource('commandes', CommandeController::class);
     Route::apiResource('livraisons', LivraisonController::class);
     Route::apiResource('frais_livraisons', FraisLivraisonController::class)->except(['index']);

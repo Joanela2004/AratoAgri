@@ -14,7 +14,7 @@ class AuthController extends Controller
     {
         $validatedData = $request->validate([
             'nomUtilisateur' => 'required',
-            'email' => 'required',
+            'email' => 'required|email|unique:utilisateurs,email',
             'contact' => 'required',
             'motDePasse' => 'required|string',
         ]);
@@ -24,12 +24,14 @@ class AuthController extends Controller
         $user->email = $validatedData['email'];
         $user->contact = $validatedData['contact'];
         $user->motDePasse = bcrypt($validatedData['motDePasse']);
-
+        $user->role = 'client'; // Définir le rôle par défaut
+        
         $user->save();
 
         $token = $user->createToken('token')->plainTextToken;
 
         return response()->json([
+            'user' => $user, // Retourner l'objet utilisateur
             'access_token' => $token,
             'token_type' => 'Bearer',
         ]);

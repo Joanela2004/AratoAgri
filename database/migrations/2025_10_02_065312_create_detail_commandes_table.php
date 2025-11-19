@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('numProduit')
                   ->constrained('produits','numProduit')
                   ->onDelete('restrict');
-            $table->decimal('poids',10,2)->default(0.25);
-            $table->string('decoupe')->default('entière');
+            $table->decimal('poids',10,2);
+             $table->foreignId('numDecoupe')->nullable()->constrained('decoupes','numDecoupe')->nullOnDelete();
             $table->decimal('prixUnitaire',14,2);
             $table->decimal('sousTotal',14,2);
             $table->timestamps();

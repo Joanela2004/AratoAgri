@@ -51,8 +51,7 @@ public function update(Request $request, string $id)
     $articleData = $request->all();
 
     if ($request->hasFile('image')) {
-        // Supprimer l'ancienne image si nécessaire
-        if ($article->image) {
+               if ($article->image) {
             \Storage::delete('public/articles/' . $article->image);
         }
         $image = $request->file('image');

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('modePaiements', function (Blueprint $table) {
+        Schema::create('mode_Paiements', function (Blueprint $table) {
             $table->id('numModePaiement');
             $table->string('nomModePaiement', 100);
             $table->boolean('actif')->default(true);
@@ -21,6 +21,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('modePaiements');
+        Schema::dropIfExists('mode_Paiements');
     }
 };

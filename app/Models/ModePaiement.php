@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class ModePaiement extends Model
 {
     use HasFactory;
-    protected $table = 'modePaiements';
+    protected $table = 'mode_Paiements';
     protected $primaryKey = 'numModePaiement';
     protected $fillable = [
         'nomModePaiement',

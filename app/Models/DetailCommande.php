@@ -2,15 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class DetailCommande extends Model
 {
+    use HasFactory;
+
+    protected $table = 'detail_commandes';
+    protected $primaryKey = 'numDetailCommande';
+
     protected $fillable = [
         'numCommande',
         'numProduit',
+        'numDecoupe',
         'poids',
-        'decoupe',
         'prixUnitaire',
         'sousTotal'
     ];
@@ -23,5 +29,10 @@ class DetailCommande extends Model
     public function produit()
     {
         return $this->belongsTo(Produit::class, 'numProduit', 'numProduit');
+    }
+
+    public function decoupe()
+    {
+        return $this->belongsTo(Decoupe::class, 'numDecoupe', 'numDecoupe');
     }
 }
