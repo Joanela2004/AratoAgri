@@ -12,7 +12,7 @@ class UtilisateurController extends Controller
     // Lister tous les utilisateurs
     public function index()
     {
-        $utilisateurs = Utilisateur::with(['commandes','paniers'])->get();
+        $utilisateurs = Utilisateur::with(['commandes'])->get();
         return response()->json($utilisateurs,200);
     }
 
@@ -35,13 +35,13 @@ class UtilisateurController extends Controller
             'role'=>$request->role
         ]);
 
-        return response()->json($utilisateur->load(['commandes','paniers']),201);
+        return response()->json($utilisateur->load(['commandes']),201);
     }
 
     // Afficher un utilisateur
     public function show(string $id)
     {
-        $utilisateur = Utilisateur::with(['commandes','paniers'])->findOrFail($id);
+        $utilisateur = Utilisateur::with(['commandes'])->findOrFail($id);
         return response()->json($utilisateur,200);
     }
 
@@ -62,7 +62,7 @@ class UtilisateurController extends Controller
         }
 
         $utilisateur->update($request->all());
-        return response()->json($utilisateur->load(['commandes','paniers']),200);
+        return response()->json($utilisateur->load(['commandes']),200);
     }
 public function clientsAvecCommandes()
 {

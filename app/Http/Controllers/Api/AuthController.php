@@ -31,9 +31,15 @@ class AuthController extends Controller
         $token = $user->createToken('token')->plainTextToken;
 
         return response()->json([
-            'user' => $user, // Retourner l'objet utilisateur
-            'access_token' => $token,
-            'token_type' => 'Bearer',
+           'user' => [
+        'id' => $user->numUtilisateur,
+        'nomUtilisateur' => $user->nomUtilisateur,
+        'email' => $user->email,
+        'contact' => $user->contact,
+        'role' => $user->role,
+    ],
+    'access_token' => $token,
+    'token_type' => 'Bearer',
         ]);
     }
 
@@ -54,9 +60,15 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
-            'access_token' => $token,
-            'token_type' => 'Bearer'
+            'user' => [
+        'id' => $user->numUtilisateur,
+        'nomUtilisateur' => $user->nomUtilisateur,
+        'email' => $user->email,
+        'contact' => $user->contact,
+        'role' => $user->role,
+    ],
+    'access_token' => $token,
+    'token_type' => 'Bearer',
         ], 200);
     }
     public function changePassword(Request $request)

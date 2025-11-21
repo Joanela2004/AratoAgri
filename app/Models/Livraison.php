@@ -11,6 +11,7 @@ class Livraison extends Model
         'numCommande',
         'numLieu',
         'transporteur',
+        'lieuLivraison',
         'referenceColis',
         'fraisLivraison',
         'contactTransporteur',

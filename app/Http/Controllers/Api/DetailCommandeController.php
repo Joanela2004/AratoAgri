@@ -27,7 +27,7 @@ class DetailCommandeController extends Controller
         $request->validate([
             'numCommande'=>'required|exists:commandes,numCommande',
             'numProduit'=>'required|exists:produits,numProduit',
-            'quantite'=>'required|integer|min:1',
+            'poids'=>'required|integer|min:1',
             'prixUnitaire'=>'required|numeric|min:0'
         ]);
         $detail=DetailCommande::create($request->all());
@@ -56,7 +56,7 @@ class DetailCommandeController extends Controller
         $request->validate([
             'numCommande'=>'sometimes|exists:commandes,numCommande',
             'numProduit'=>'sometimes|exists:produits,numProduit',
-            'quantite'=>'sometimes|integer|min:1',
+            'poids'=>'sometimes|integer|min:1',
             'prixUnitaire'=>'sometimes|numeric|min:0'
         ]);
         $detail->update($request->all());

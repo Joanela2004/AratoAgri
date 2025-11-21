@@ -13,13 +13,14 @@ return new class extends Migration
             $table->foreignId('numCommande')
                   ->constrained('commandes','numCommande')
                   ->onDelete('cascade');
+            $table->string('lieuLivraison')->nullable();
             $table->string('transporteur')->nullable();
             $table->string('referenceColis')->nullable();
             $table->decimal('fraisLivraison',14,2);
             $table->string('contactTransporteur')->nullable();
             $table->dateTime('dateExpedition')->nullable();
             $table->dateTime('dateLivraison')->nullable();
-            $table->enum('statutLivraison',['en cours','en préparation','livré'])->default('en préparation');
+            $table->enum('statutLivraison', ['en cours', 'livrée'])->default('en cours');
             $table->timestamps();
         });
     }

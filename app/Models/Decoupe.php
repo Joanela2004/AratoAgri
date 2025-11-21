@@ -21,4 +21,5 @@ class Decoupe extends Model
     {
         return $this->hasMany(DetailCommande::class, 'numDecoupe', 'numDecoupe');
     }
+    
 }

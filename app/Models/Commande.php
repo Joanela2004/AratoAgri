@@ -12,21 +12,9 @@ class Commande extends Model
     protected $primaryKey = 'numCommande';
 
     protected $fillable = [
-        'numUtilisateur',
-        'numModePaiement',
-        'numLieu',
-        'numPromotion',
-        'codePromo',
-        'statut',
-        'sousTotal',
-        'fraisLivraison',
-        'montantTotal',
-        'payerLivraison',
-        'dateCommande',
-        'nomPayeur',
-        'carteDerniers',
-        'paypalEmail',
-        'numeroPayeur'
+        'numUtilisateur', 'numModePaiement', 'numLieu', 'statut', 'sousTotal',
+        'fraisLivraison', 'montantTotal', 'payerLivraison', 'codePromo', 
+        'numPromotion', 'dateCommande','estConsulte'
     ];
 
     public function utilisateur()
@@ -47,5 +35,13 @@ class Commande extends Model
     public function promotion()
     {
         return $this->belongsTo(Promotion::class, 'numPromotion', 'numPromotion');
+    }
+    public function detailCommandes()
+    {
+        return $this->hasMany(DetailCommande::class, 'numCommande', 'numCommande');
+    }
+    public function livraisons()
+    {
+            return $this->hasMany(Livraison::class, 'numCommande', 'numCommande');
     }
 }

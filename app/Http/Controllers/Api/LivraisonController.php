@@ -13,13 +13,13 @@ class LivraisonController extends Controller
 
     public function index()
     {
-        $livraisons = Livraison::with(['commande.detailCommandes.produit','commande.mode_paiement','commande.lieu'])->get();
+        $livraisons = Livraison::with(['commande'])->get();
         return response()->json($livraisons, 200);
     }
 
     public function indexClient()
     {
-        $livraisons = Livraison::with(['commande.detailCommandes.produit','commande.mode_paiement','commande.lieu'])
+        $livraisons = Livraison::with(['commande'])
             ->whereHas('commande', function($q){
                 $q->where('numUtilisateur', auth()->id());
             })
@@ -29,7 +29,7 @@ class LivraisonController extends Controller
 
     public function showClient($id)
     {
-        $livraison = Livraison::with(['commande.detailCommandes.produit','commande.mode_paiement','commande.lieu'])
+        $livraison = Livraison::with(['commande'])
             ->whereHas('commande', function($q){
                 $q->where('numUtilisateur', auth()->id());
             })
@@ -37,13 +37,12 @@ class LivraisonController extends Controller
         return response()->json($livraison, 200);
     }
 
-    // Mettre à jour le statut d'une livraison
-    public function updateStatus(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $livraison = Livraison::findOrFail($id);
 
         $request->validate([
-            'statutLivraison' => 'required|in:en préparation,en cours,livré'
+            'statutLivraison' => 'required'
         ]);
 
         DB::beginTransaction();
@@ -54,14 +53,14 @@ class LivraisonController extends Controller
                 $livraison->dateExpedition = now();
             }
 
-            if ($request->statutLivraison === 'livré') {
+            if ($request->statutLivraison === 'livrée') {
                 $livraison->dateLivraison = now();
             }
 
             $livraison->save();
             DB::commit();
 
-            return response()->json($livraison->load(['commande.detailCommandes.produit','commande.mode_paiement','commande.lieu']), 200);
+            return response()->json($livraison->load(['commande']), 200);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error'=>'Erreur lors de la mise à jour de la livraison','msg'=>$e->getMessage()],500);
