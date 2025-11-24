@@ -14,8 +14,9 @@ class Utilisateur extends Authenticatable
 
     protected $table = 'utilisateurs';
     protected $primaryKey = 'numUtilisateur';
-    protected $fillable = ['nomUtilisateur','email','contact','motDePasse','role'];
-    protected $hidden = ['motDePasse','remember_token'];
+    protected $fillable = ['nomUtilisateur','email','contact','motDePasse','role','image'];
+protected $hidden = ['motDePasse','remember_token'];
+
 
     public function getAuthPassword()
     {

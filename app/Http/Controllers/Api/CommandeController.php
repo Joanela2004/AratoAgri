@@ -25,7 +25,7 @@ class CommandeController extends Controller
 
     public function showClient($id)
     {
-        $commande = Commande::with(['detailCommandes.produit','livraisons','modePaiement','lieu','promotion'])
+        $commande = Commande::with(['detailCommandes.produit','livraisons','modePaiement','lieu','promotion','utilisateur'])
             ->where('numUtilisateur', auth()->id())
             ->findOrFail($id);
         return response()->json($commande, 200);
@@ -34,7 +34,7 @@ class CommandeController extends Controller
     public function show($id)
     {
             $commande = Commande::where('numCommande', $id)
-                            ->with(['utilisateur', 'detailCommandes','detailCommandes.produit' ,'livraisons.lieu'
+                            ->with(['utilisateur', 'detailCommandes','detailCommandes.produit' ,'detailCommandes.produit.categorie','livraisons','lieu','modePaiement'
                             ]) 
                             ->first(); 
 
@@ -46,7 +46,7 @@ class CommandeController extends Controller
     }
     public function index()
     {
-        $commandes = Commande::with(['utilisateur','detailCommandes.produit','livraisons','modePaiement','lieu','promotion'])->get();
+        $commandes = Commande::with(['utilisateur','detailCommandes.produit.categorie','detailCommandes.produit','livraisons','modePaiement','lieu','promotion'])->get();
         return response()->json($commandes, 200);
     }
     
@@ -136,6 +136,8 @@ class CommandeController extends Controller
 
         DB::beginTransaction();
         try {
+            $reference = 'CMD-' . str_pad(Commande::max('numCommande') + 1, 5, '0', STR_PAD_LEFT);
+
             $commande = Commande::create([
                 'numUtilisateur'   => $userId,
                 'numModePaiement'  => $request->numModePaiement,
@@ -147,7 +149,8 @@ class CommandeController extends Controller
                 'payerLivraison'   => $request->payerLivraison ?? false,
                 'codePromo'        => $codePromoApplique,
                 'numPromotion'     => $numPromotion,
-                'dateCommande'     => now()
+                'dateCommande'     => now(),
+           'referenceCommande'=> $reference,
             ]);
 
             foreach ($panier as $item) {
@@ -169,7 +172,8 @@ class CommandeController extends Controller
                 'numCommande'    => $commande->numCommande,
                 'lieuLivraison'  => $request->lieuNom ?? $nomLieu,
                 'transporteur'   => $request->transporteur ?? null,
-                'referenceColis' => 'COLIS-' . strtoupper(Str::random(8)),
+                'referenceColis' => 'LV-' . rand(100000, 999999),
+
                 'fraisLivraison' => $request->fraisLivraison,
                 'contactTransporteur' => $request->contactTransporteur ?? null,
                 'dateExpedition' => $request->payerLivraison ? now() : null,
@@ -193,48 +197,57 @@ class CommandeController extends Controller
 
 public function update(Request $request, $id)
 {
+    $request->validate([
+        'statut' => 'sometimes|string|in:en attente,validée,expédiée,annulée,livrée',
+        'payerLivraison' => 'sometimes|integer|in:0,1',
+        'montantTotal' => 'sometimes|numeric|min:0',
+        'estConsulte' => 'sometimes|integer|in:0,1',
+        'dateExpedition' => 'nullable|date_format:Y-m-d H:i:s',
+    ]);
+
     try {
         $commande = Commande::findOrFail($id);
-        
-        if ($request->has('statut')) {
-            $commande->statut = $request->statut;
-        }
 
-             if ($request->has('estConsulte')) {
-            $commande->estConsulte = $request->estConsulte; 
-        }
-        
+        if ($request->has('statut')) $commande->statut = $request->statut;
+        if ($request->has('payerLivraison')) $commande->payerLivraison = $request->payerLivraison;
+        if ($request->has('montantTotal')) $commande->montantTotal = $request->montantTotal;
+        if ($request->has('estConsulte')) $commande->estConsulte = $request->estConsulte;
+        if ($request->has('dateExpedition')) $commande->dateExpedition = $request->dateExpedition;
+
         $commande->save();
-        
+
         return response()->json($commande, 200);
 
     } catch (\Exception $e) {
-        return response()->json(['message' => 'Erreur de mise à jour.'], 500);
+        return response()->json([
+            'message' => 'Erreur lors de la mise à jour de la commande',
+            'error' => $e->getMessage()
+        ], 500);
     }
 }
 
 
-    public function updateClient(Request $request, string $id)
-    {
-        $commande = Commande::where('numUtilisateur', auth()->id())->findOrFail($id);
+    // public function updateClient(Request $request, string $id)
+    // {
+    //     $commande = Commande::where('numUtilisateur', auth()->id())->findOrFail($id);
 
-        $request->validate([
-            'statut' => 'sometimes|string',
-            'payerLivraison' => 'sometimes|boolean'
-        ]);
+    //     $request->validate([
+    //         'statut' => 'sometimes|string',
+    //         'payerLivraison' => 'sometimes|boolean'
+    //     ]);
 
-        if ($request->has('statut')) {
-            $commande->statut = $request->statut;
-        }
+    //     if ($request->has('statut')) {
+    //         $commande->statut = $request->statut;
+    //     }
 
-        if ($request->has('payerLivraison')) {
-            $commande->payerLivraison = $request->payerLivraison;
-        }
+    //     if ($request->has('payerLivraison')) {
+    //         $commande->payerLivraison = $request->payerLivraison;
+    //     }
 
-        $commande->save();
+    //     $commande->save();
 
-        return response()->json($commande->load(['detailCommandes.produit','livraisons','modePaiement','lieu','promotion']),200);
-    }
+    //     return response()->json($commande->load(['detailCommandes.produit','livraisons','modePaiement','lieu','promotion']),200);
+    // }
 
     public function destroy(string $id)
     {

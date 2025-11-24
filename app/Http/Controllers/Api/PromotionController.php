@@ -79,4 +79,5 @@ class PromotionController extends Controller
     return response()->json(['message' => 'E-mails envoyés avec succès'], 200);
 }
 
+
 }

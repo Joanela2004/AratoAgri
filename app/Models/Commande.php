@@ -10,12 +10,12 @@ class Commande extends Model
     use HasFactory;
 
     protected $primaryKey = 'numCommande';
+protected $fillable = [
+    'numUtilisateur', 'numModePaiement', 'numLieu', 'statut', 'sousTotal',
+    'fraisLivraison', 'montantTotal', 'payerLivraison', 'codePromo', 
+    'numPromotion', 'dateCommande','estConsulte', 'referenceCommande'
+];
 
-    protected $fillable = [
-        'numUtilisateur', 'numModePaiement', 'numLieu', 'statut', 'sousTotal',
-        'fraisLivraison', 'montantTotal', 'payerLivraison', 'codePromo', 
-        'numPromotion', 'dateCommande','estConsulte'
-    ];
 
     public function utilisateur()
     {
@@ -42,6 +42,6 @@ class Commande extends Model
     }
     public function livraisons()
     {
-            return $this->hasMany(Livraison::class, 'numCommande', 'numCommande');
+        return $this->hasMany(Livraison::class, 'numCommande', 'numCommande');
     }
 }
