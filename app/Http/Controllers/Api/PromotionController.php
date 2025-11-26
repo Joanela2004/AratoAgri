@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Jobs\SendPromoEmailJob;
 use App\Http\Controllers\Controller;
 use App\Models\Promotion;
+use App\Models\PromotionUtilisateur;
 use Illuminate\Http\Request;
-
+use App\Models\Utilisateur;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PromoMail;
 class PromotionController extends Controller
 {
     public function index()
@@ -63,21 +67,65 @@ class PromotionController extends Controller
         $promotion->delete();
         return response()->json(null, 204);
     }
-    public function sendEmailToUsers()
+
+public function sendEmailToUsers()
 {
     $today = now();
     $promotions = Promotion::where('dateFin', '>=', $today)
                             ->where('statutPromotion', 'Active')
                             ->get();
 
-    $users = User::all();
+    $users = Utilisateur::where('role', 'client')->get();
 
     foreach ($users as $user) {
         Mail::to($user->email)->send(new PromoMail($promotions));
     }
 
     return response()->json(['message' => 'E-mails envoyés avec succès'], 200);
-}
 
 
+
 }
+public function validerCodePromo(Request $request)
+{
+    $request->validate([
+        'codePromo' => 'required|string',
+        'numUtilisateur' => 'required|integer',
+    ]);
+
+    $userId = $request->numUtilisateur;
+    $code = $request->codePromo;
+
+    // Chercher la promo
+    $promotion = Promotion::where('codePromo', $code)->first();
+    if (!$promotion) {
+        return response()->json(['message' => 'Code promo invalide'], 400);
+    }
+
+    // Vérifier que l'utilisateur a bien reçu ce code
+    $promoUser = PromotionUtilisateur::where('numPromotion', $promotion->numPromotion)
+                                      ->where('numUtilisateur', $userId)
+                                      ->first();
+
+    if (!$promoUser) {
+        return response()->json(['message' => 'Code promo non attribué à cet utilisateur'], 400);
+    }
+
+    // Vérifier expiration
+    if ($promoUser->dateExpiration && now()->greaterThan($promoUser->dateExpiration)) {
+        return response()->json(['message' => 'Code promo expiré'], 400);
+    }
+
+    // Vérifier statut
+    if ($promoUser->statut !== 'valide') {
+        return response()->json(['message' => 'Code promo déjà utilisé ou invalide'], 400);
+    }
+
+    return response()->json([
+        'message' => 'Code promo valide',
+        'valeur' => $promotion->valeur,
+        'typePromotion' => $promotion->typePromotion
+    ], 200);
+}
+
+};

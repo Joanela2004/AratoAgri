@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('livraisons', function (Blueprint $table) {
-            $table->string('lieuLivraison')->nullable()->after('numCommande');
+        Schema::table('paniers', function (Blueprint $table) {
+             $table->string('statut')->default('en_cours')->after('numUtilisateur');
+
         });
     }
 
@@ -21,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('livraisons', function (Blueprint $table) {
-           $table->dropColumn('lieuLivraison');
+        Schema::table('paniers', function (Blueprint $table) {
+            $table->dropColumn('statut');
         });
     }
 };

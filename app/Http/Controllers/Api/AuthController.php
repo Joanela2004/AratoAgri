@@ -4,109 +4,129 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\DetailPanier;
 use App\Models\Utilisateur;
-use Illuminate\Notifications\Notifiable;
+use App\Models\Panier;
+use App\Models\Produit;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage; // Nécessaire pour gérer les fichiers
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use App\Mail\VerificationEmail;
 
 class AuthController extends Controller
 {
+    // Inscription
     public function register(Request $request)
     {
-        // Correction de la validation des types de fichiers (mime) et de la taille maximale
         $validatedData = $request->validate([
-            'nomUtilisateur' => 'required',
-            'email' => 'required|email|unique:utilisateurs,email',
-            'contact' => 'required',
-            'motDePasse' => 'required|string|confirmed', // Ajout de 'confirmed' pour la sécurité
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048' // Validation correcte
+            'nomUtilisateur' => 'required|string|max:100',
+            'email' => 'required|email|unique:utilisateurs,email', 
+            'contact' => 'required|string|max:15',
+            'motDePasse' => 'required|string|min:6|confirmed',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
 
         $user = new Utilisateur();
         $user->nomUtilisateur = $validatedData['nomUtilisateur'];
         $user->email = $validatedData['email'];
         $user->contact = $validatedData['contact'];
-        $user->motDePasse = Hash::make($validatedData['motDePasse']); // Utilisation de Hash::make
+        $user->motDePasse = Hash::make($validatedData['motDePasse']);
         $user->role = 'client';
+        $user->email_verified_at = null;
+        $user->email_verification_token = Str::random(60);
 
-        $imageFileName = null; // Initialisation du nom du fichier
-
-        // 💡 GESTION DE L'IMAGE : Stockage du fichier sur le disque
         if ($request->hasFile('image')) {
-            // Stockage dans le dossier 'profiles' à l'intérieur de 'public'
             $path = $request->file('image')->store('profiles', 'public');
-            // On enregistre uniquement le nom du fichier (sans le chemin 'profiles/')
-            $imageFileName = basename($path);
+            $user->image = $path;
+        } else {
+            $user->image = null;
         }
-        
-        // Enregistrement du nom du fichier dans la BDD (sera null si aucune image n'est fournie)
-        $user->image = $imageFileName;
 
         $user->save();
 
-        $token = $user->createToken('token')->plainTextToken;
+        try {
+            Mail::to($user->email)->send(new VerificationEmail($user));
+        } catch (\Exception $e) {
+            \Log::error("Erreur d'envoi d'email de vérification: " . $e->getMessage());
+        }
 
         return response()->json([
-           'user' => [
-                'id' => $user->numUtilisateur, // Assurez-vous que c'est le bon champ (numUtilisateur ou id)
+            'message' => 'Inscription réussie. Vérifiez votre email pour confirmation.',
+            'user' => [
+                'id' => $user->numUtilisateur,
                 'nomUtilisateur' => $user->nomUtilisateur,
                 'email' => $user->email,
                 'contact' => $user->contact,
                 'role' => $user->role,
-                'image' => $user->image, // Contient maintenant le nom du fichier ou null
+                'image' => $user->image,
             ],
-            'access_token' => $token,
-            'token_type' => 'Bearer',
         ], 201);
     }
+public function verifyEmail($token)
+{
+    $user = Utilisateur::where('email_verification_token', $token)->first();
 
-    
+    if (!$user) {
+        return redirect(env('FRONTEND_URL') . '/?email_verification=failed');
+    }
+
+    $user->email_verified_at = now();
+    $user->email_verification_token = null;
+    $user->save();
+
+    return redirect(env('FRONTEND_URL') . '/?email_verification=success');
+}
+
+
+    // Login
     public function login(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
-            'motDePasse' => 'required'
+            'motDePasse' => 'required|string',
         ]);
 
         $user = Utilisateur::where('email', $request->email)->first();
 
-        // 💡 CORRECTION: Utilisation de Hash::check() pour la vérification du mot de passe
         if (!$user || !Hash::check($request->motDePasse, $user->motDePasse)) {
-            return response()->json(['message' => 'Identifiants invalides'], 401);
+            return response()->json(['message' => 'Identifiants incorrects'], 401);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        if ($user->role !== 'admin' && is_null($user->email_verified_at)) {
+    return response()->json(['message' => 'Veuillez vérifier votre email avant de vous connecter.'], 403);
+}
 
-        return response()->json([
+
+        $user->tokens()->delete();
+        $token = $user->createToken('auth_token')->plainTextToken;
+ $localCartItems = $request->input('local_cart_items', []);
+ $this->mergeLocalCart($user->numUtilisateur, $localCartItems);       
+ return response()->json([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
             'user' => [
-                'id' => $user->numUtilisateur, // Assurez-vous que c'est le bon champ (numUtilisateur ou id)
+                'id' => $user->numUtilisateur,
                 'nomUtilisateur' => $user->nomUtilisateur,
                 'email' => $user->email,
                 'contact' => $user->contact,
                 'role' => $user->role,
-                'image' => $user->image, // Retourne le nom du fichier ou null
-            ],
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-        ], 200);
+                'image' => $user->image,
+            ]
+        ]);
     }
-    
+
+    // Déconnexion
     public function logout(Request $request)
     {
-        // Supprime le jeton actuel
         $request->user()->currentAccessToken()->delete();
-
         return response()->json(['message' => 'Déconnexion réussie.'], 200);
     }
 
+    // Changement de mot de passe
     public function changePassword(Request $request)
     {
-        // ... (votre code existant, inchangé)
         $user = $request->user();
-
-        if ($user->role !== 'admin') {
-            return response()->json(['message' => 'Accès refusé'], 403);
-        }
 
         $request->validate([
             'current_password' => 'required',
@@ -119,9 +139,63 @@ class AuthController extends Controller
 
         $user->motDePasse = Hash::make($request->new_password);
         $user->save();
-
         $user->tokens()->delete();
 
         return response()->json(['message' => 'Mot de passe mis à jour, veuillez vous reconnecter.'], 200);
+    }
+    protected function getPanierClient(int $userId)
+    {
+        return Panier::with('detailsPaniers.produit')
+            ->where('numUtilisateur', $userId)
+            ->where('statut', 'en_cours')
+            ->first();
+    }
+    protected function mergeLocalCart(int $userId, array $localItems)
+    {
+        if (empty($localItems)) {
+            return;
+        }
+
+        // 1. Récupérer ou créer le panier "en cours" BDD de l'utilisateur
+        $panier = Panier::firstOrCreate(
+            ['numUtilisateur' => $userId, 'statut' => 'en_cours']
+        );
+
+        foreach ($localItems as $item) {
+            // Assurez-vous que le front-end envoie 'numProduit' et 'poids'
+            $numProduit = $item['numProduit'] ?? null;
+            $poids = (float)($item['poids'] ?? 0); 
+            
+            $produit = Produit::find($numProduit);
+            
+            if (!$produit || $poids <= 0) {
+                continue;
+            }
+
+            // 2. Chercher si l'article existe déjà dans le panier BDD
+            $detail = DetailPanier::firstOrNew([
+                'numPanier' => $panier->numPanier,
+                'numProduit' => $numProduit,
+            ]);
+
+            // 3. Déterminer la nouvelle quantité totale (fusion)
+            $poidsActuel = $detail->exists ? (float)$detail->poids : 0;
+            $newPoids = $poidsActuel + $poids;
+
+            // 4. Mettre à jour les détails du panier (avec vérification de stock)
+            if ($newPoids <= $produit->poids) { // $produit->poids est le stock disponible
+                $detail->poids = $newPoids; // Mise à jour de la quantité/poids
+                $detail->prixUnitaire = $produit->prix;
+                $detail->sousTotal = $produit->prix * $newPoids;
+                $detail->save();
+            } else {
+                                 if ($poidsActuel < $produit->poids) {
+                      $detail->poids = $produit->poids; // Ajouter jusqu'au stock maximum
+                      $detail->prixUnitaire = $produit->prix;
+                      $detail->sousTotal = $produit->prix * $produit->poids;
+                      $detail->save();
+                 }
+            }
+        }
     }
 }

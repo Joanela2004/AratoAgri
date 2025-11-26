@@ -2,36 +2,42 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Hash;
-
 class Utilisateur extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
+    protected $primaryKey = 'numUtilisateur'; // si tu as une clé personnalisée
     protected $table = 'utilisateurs';
-    protected $primaryKey = 'numUtilisateur';
-    protected $fillable = ['nomUtilisateur','email','contact','motDePasse','role','image'];
-protected $hidden = ['motDePasse','remember_token'];
 
+    protected $fillable = [
+        'nomUtilisateur',
+        'email',
+        'contact',
+        'motDePasse',
+        'role',
+        'image',
+        'email_verification_token',
+        'email_verified_at',
+    ];
 
-    public function getAuthPassword()
-    {
-        return $this->motDePasse;
-    }
+    protected $hidden = [
+        'motDePasse',
+        'email_verification_token',
+    ];
 
-    public function setMotDePasseAttribute($value)
-    {
-        $this->attributes['motDePasse'] = Hash::needsRehash($value) ? Hash::make($value) : $value;
-    }
-
-   
+    
 
     public function commandes()
     {
         return $this->hasMany(Commande::class, 'numUtilisateur');
     }
+    public function promotions()
+{
+    return $this->hasMany(PromotionUtilisateur::class, 'numUtilisateur', 'numUtilisateur');
+}
+
 }

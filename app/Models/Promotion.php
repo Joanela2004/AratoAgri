@@ -13,4 +13,9 @@ class Promotion extends Model
     {
         return $this->hasMany(Produit::class, 'numPromotion')->withTimestamps();
     }
+    public function utilisateurs()
+{
+    return $this->hasMany(PromotionUtilisateur::class, 'numPromotion', 'numPromotion');
+}
+
 }

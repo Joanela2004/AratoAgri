@@ -23,6 +23,7 @@ return new class extends Migration
             $table->enum('statutLivraison', ['en cours', 'livrée'])->default('en cours');
             $table->timestamps();
         });
+        
     }
 
     public function down(): void
