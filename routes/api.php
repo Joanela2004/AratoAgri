@@ -16,8 +16,7 @@ use App\Http\Controllers\Api\{
     StripeController,
     LieuLivraisonController,
     DecoupeController,
-    PanierController,
-    DetailPanierController
+    
 };
 
 // Routes publiques
@@ -49,23 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('utilisateurs/{id}', [UtilisateurController::class, 'show']);
     Route::post('utilisateurs/{id}', [UtilisateurController::class, 'update']); 
 
-    // Panier 
-    // GET /panier : Afficher le panier de l'utilisateur connecté (index)
-    Route::get('/panier', [PanierController::class, 'index']); // <<< AJOUTÉ/CORRIGÉ
-
-    // POST /panier : Ajouter un produit au panier (store)
-    Route::post('/panier', [PanierController::class, 'store']); 
-
-    // DELETE /panier : Vider tout le panier (clear)
-    Route::delete('/panier', [PanierController::class, 'clear']); // <<< AJOUTÉ/CORRIGÉ
-    
-    // Routes spécifiques aux détails du panier (nécessitent l'ID du détail)
-    Route::put('panier/{id}', [PanierController::class, 'update']);
-    Route::delete('/panier/{id}', [PanierController::class, 'destroy']);
-    
-    // La route show par ID de panier complet n'est généralement pas utilisée ici
-    Route::get('/panier/{id}', [PanierController::class, 'show']);
-
+  
 
     // Commandes & Paiement
     Route::post('/stripe/checkout', [StripeController::class, 'createCheckoutSession']);
