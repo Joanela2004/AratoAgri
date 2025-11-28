@@ -4,29 +4,31 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\DetailPanier;
 use App\Models\Utilisateur;
-use App\Models\Panier;
 use App\Models\Produit;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
 use App\Mail\VerificationEmail;
 
 class AuthController extends Controller
 {
-    // Inscription
+    /**
+     * Inscription d'un nouvel utilisateur
+     * Crée un compte, envoie un email de vérification, et stocke une image si fournie
+     */
     public function register(Request $request)
     {
+        // Validation des données
         $validatedData = $request->validate([
             'nomUtilisateur' => 'required|string|max:100',
-            'email' => 'required|email|unique:utilisateurs,email', 
+            'email' => 'required|email|unique:utilisateurs,email',
             'contact' => 'required|string|max:15',
             'motDePasse' => 'required|string|min:6|confirmed',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
 
+        // Création de l'utilisateur
         $user = new Utilisateur();
         $user->nomUtilisateur = $validatedData['nomUtilisateur'];
         $user->email = $validatedData['email'];
@@ -36,50 +38,49 @@ class AuthController extends Controller
         $user->email_verified_at = null;
         $user->email_verification_token = Str::random(60);
 
+        // Gestion de l'image (si uploadée)
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('profiles', 'public');
-            $user->image = $path;
-        } else {
-            $user->image = null;
+            $user->image = $request->file('image')->store('profiles', 'public');
         }
 
         $user->save();
 
+        // Envoi de l'email de vérification
         try {
             Mail::to($user->email)->send(new VerificationEmail($user));
         } catch (\Exception $e) {
-            \Log::error("Erreur d'envoi d'email de vérification: " . $e->getMessage());
+            \Log::error("Erreur envoi email vérification: " . $e->getMessage());
         }
 
         return response()->json([
-            'message' => 'Inscription réussie. Vérifiez votre email pour confirmation.',
-            'user' => [
-                'id' => $user->numUtilisateur,
-                'nomUtilisateur' => $user->nomUtilisateur,
-                'email' => $user->email,
-                'contact' => $user->contact,
-                'role' => $user->role,
-                'image' => $user->image,
-            ],
+            'message' => 'Inscription réussie. Vérifiez votre email.',
+            'user' => $user->only(['numUtilisateur', 'nomUtilisateur', 'email', 'contact', 'role', 'image'])
         ], 201);
     }
-public function verifyEmail($token)
-{
-    $user = Utilisateur::where('email_verification_token', $token)->first();
 
-    if (!$user) {
-        return redirect(env('FRONTEND_URL') . '/?email_verification=failed');
+    /**
+     * Vérifie l'email avec le token envoyé
+     * Active le compte si le token est valide
+     */
+    public function verifierEmail($token)
+    {
+        $user = Utilisateur::where('email_verification_token', $token)->first();
+
+        if (!$user) {
+            return redirect(env('FRONTEND_URL') . '/?email_verification=failed');
+        }
+
+        $user->email_verified_at = now();
+        $user->email_verification_token = null;
+        $user->save();
+
+        return redirect(env('FRONTEND_URL') . '/?email_verification=success');
     }
 
-    $user->email_verified_at = now();
-    $user->email_verification_token = null;
-    $user->save();
-
-    return redirect(env('FRONTEND_URL') . '/?email_verification=success');
-}
-
-
-    // Login
+    /**
+     * Connexion de l'utilisateur
+     * Vérifie les identifiants, génère un token, et fusionne le panier local
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -94,37 +95,105 @@ public function verifyEmail($token)
         }
 
         if ($user->role !== 'admin' && is_null($user->email_verified_at)) {
-    return response()->json(['message' => 'Veuillez vérifier votre email avant de vous connecter.'], 403);
-}
+            return response()->json(['message' => 'Veuillez vérifier votre email'], 403);
+        }
 
-
+        // Supprime les anciens tokens
         $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
- $localCartItems = $request->input('local_cart_items', []);
- $this->mergeLocalCart($user->numUtilisateur, $localCartItems);       
- return response()->json([
+
+        // Fusion du panier local (ce que l'utilisateur avait hors ligne)
+        $panierLocal = $request->input('local_cart_items', []);
+        $this->fusionnerPanierLocal($user->numUtilisateur, $panierLocal);
+
+        return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => [
-                'id' => $user->numUtilisateur,
-                'nomUtilisateur' => $user->nomUtilisateur,
-                'email' => $user->email,
-                'contact' => $user->contact,
-                'role' => $user->role,
-                'image' => $user->image,
-            ]
+            'user' => $user->only(['numUtilisateur', 'nomUtilisateur', 'email', 'contact', 'role', 'image'])
         ]);
     }
 
-    // Déconnexion
-    public function logout(Request $request)
+    /**
+     * Fusionne le panier local (hors ligne) avec le panier en session
+     * Additionne les quantités pour éviter de perdre le panier à la connexion
+     */
+    protected function fusionnerPanierLocal(int $userId, array $panierLocal)
     {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Déconnexion réussie.'], 200);
+        if (empty($panierLocal)) {
+            return; // Rien à fusionner si le panier local est vide
+        }
+
+        $panierFusionne = [];
+
+        foreach ($panierLocal as $item) {
+            $numProduit = $item['numProduit'] ?? null;
+            $poids = (float)($item['poids'] ?? 0);
+
+            // Ignorer si produit invalide ou poids <= 0
+            if (!$numProduit || $poids <= 0) {
+                continue;
+            }
+
+            $produit = Produit::find($numProduit);
+            if (!$produit) {
+                continue; // Produit supprimé ? On l'ignore
+            }
+
+            // Si le produit est déjà dans le panier fusionné, additionner les poids
+            if (isset($panierFusionne[$numProduit])) {
+                $panierFusionne[$numProduit]['poids'] += $poids;
+            } else {
+                $panierFusionne[$numProduit] = [
+                    'numProduit' => $numProduit,
+                    'poids' => $poids,
+                    'optionDecoupe' => $item['cuttingOption'] ?? 'entier',
+                    'prixApresDecoupe' => $item['prixApresDecoupe'] ?? $produit->prix,
+                ];
+            }
+
+            // Limiter au stock disponible
+            if ($panierFusionne[$numProduit]['poids'] > $produit->poids) {
+                $panierFusionne[$numProduit]['poids'] = $produit->poids;
+            }
+        }
+
+        // Stocker le panier fusionné dans la session (temporaire)
+        session(['panier_fusionne_' . $userId => $panierFusionne]);
     }
 
-    // Changement de mot de passe
-    public function changePassword(Request $request)
+    /**
+     * Récupère le panier fusionné pour un utilisateur
+     * Utilisé par CommandeController si le panier frontal est vide
+     */
+    public static function recupererPanierFusionne(int $userId)
+    {
+        return session('panier_fusionne_' . $userId, []);
+    }
+
+    /**
+     * Vide le panier fusionné après une commande
+     * Appelé par CommandeController
+     */
+    public static function viderPanierFusionne(int $userId)
+    {
+        session()->forget('panier_fusionne_' . $userId);
+    }
+
+    /**
+     * Déconnexion de l'utilisateur
+     * Supprime le token actif
+     */
+    public function deconnexion(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Déconnexion réussie'], 200);
+    }
+
+    /**
+     * Change le mot de passe de l'utilisateur
+     * Vérifie l'ancien mot de passe et déconnecte après changement
+     */
+    public function changerMotDePasse(Request $request)
     {
         $user = $request->user();
 
@@ -141,61 +210,6 @@ public function verifyEmail($token)
         $user->save();
         $user->tokens()->delete();
 
-        return response()->json(['message' => 'Mot de passe mis à jour, veuillez vous reconnecter.'], 200);
-    }
-    protected function getPanierClient(int $userId)
-    {
-        return Panier::with('detailsPaniers.produit')
-            ->where('numUtilisateur', $userId)
-            ->where('statut', 'en_cours')
-            ->first();
-    }
-    protected function mergeLocalCart(int $userId, array $localItems)
-    {
-        if (empty($localItems)) {
-            return;
-        }
-
-        // 1. Récupérer ou créer le panier "en cours" BDD de l'utilisateur
-        $panier = Panier::firstOrCreate(
-            ['numUtilisateur' => $userId, 'statut' => 'en_cours']
-        );
-
-        foreach ($localItems as $item) {
-            // Assurez-vous que le front-end envoie 'numProduit' et 'poids'
-            $numProduit = $item['numProduit'] ?? null;
-            $poids = (float)($item['poids'] ?? 0); 
-            
-            $produit = Produit::find($numProduit);
-            
-            if (!$produit || $poids <= 0) {
-                continue;
-            }
-
-            // 2. Chercher si l'article existe déjà dans le panier BDD
-            $detail = DetailPanier::firstOrNew([
-                'numPanier' => $panier->numPanier,
-                'numProduit' => $numProduit,
-            ]);
-
-            // 3. Déterminer la nouvelle quantité totale (fusion)
-            $poidsActuel = $detail->exists ? (float)$detail->poids : 0;
-            $newPoids = $poidsActuel + $poids;
-
-            // 4. Mettre à jour les détails du panier (avec vérification de stock)
-            if ($newPoids <= $produit->poids) { // $produit->poids est le stock disponible
-                $detail->poids = $newPoids; // Mise à jour de la quantité/poids
-                $detail->prixUnitaire = $produit->prix;
-                $detail->sousTotal = $produit->prix * $newPoids;
-                $detail->save();
-            } else {
-                                 if ($poidsActuel < $produit->poids) {
-                      $detail->poids = $produit->poids; // Ajouter jusqu'au stock maximum
-                      $detail->prixUnitaire = $produit->prix;
-                      $detail->sousTotal = $produit->prix * $produit->poids;
-                      $detail->save();
-                 }
-            }
-        }
+        return response()->json(['message' => 'Mot de passe mis à jour. Reconnectez-vous.'], 200);
     }
 }

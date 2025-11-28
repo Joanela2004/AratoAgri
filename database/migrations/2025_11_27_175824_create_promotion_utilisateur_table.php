@@ -6,20 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-   
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('promotion_utilisateur', function (Blueprint $table) {
-           $table->id('numPromotion_Utilisateur');
+          $table->id();
             $table->unsignedBigInteger('numPromotion');
             $table->unsignedBigInteger('numUtilisateur');
-            $table->string('statut')->default('valide'); // valide / utilisé / expiré
-            $table->dateTime('dateExpiration')->nullable();
+            $table->string('code_envoye')->nullable(); // le code exact envoyé (ex: VIP2025)
+            $table->date('date_expiration')->nullable();
+            $table->enum('statut', ['envoye', 'utilise', 'expire'])->default('envoye');
             $table->timestamps();
 
+            // Clés étrangères
             $table->foreign('numPromotion')->references('numPromotion')->on('promotions')->onDelete('cascade');
             $table->foreign('numUtilisateur')->references('numUtilisateur')->on('utilisateurs')->onDelete('cascade');
-
+            $table->unique(['numPromotion', 'numUtilisateur']);
         });
     }
 

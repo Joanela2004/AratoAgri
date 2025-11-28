@@ -35,9 +35,11 @@ class Utilisateur extends Authenticatable
     {
         return $this->hasMany(Commande::class, 'numUtilisateur');
     }
-    public function promotions()
+public function promotionsRecues()
 {
-    return $this->hasMany(PromotionUtilisateur::class, 'numUtilisateur', 'numUtilisateur');
+    return $this->belongsToMany(Promotion::class, 'promotion_utilisateur', 'numUtilisateur', 'numPromotion')
+                ->withPivot('code_envoye', 'date_expiration', 'statut')
+                ->withTimestamps();
 }
 
 }
