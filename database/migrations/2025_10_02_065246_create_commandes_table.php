@@ -14,7 +14,7 @@ return new class extends Migration
                   ->constrained('utilisateurs', 'numUtilisateur')
                   ->onDelete('cascade');
 
-$table->foreignId('numModePaiement')->nullable()->constrained('modes_paiement')->onDelete('set null');
+$table->foreignId('numModePaiement')->nullable()->constrained('mode_Paiements')->onDelete('set null');
 
             $table->foreignId('numLieu')
                   ->nullable()

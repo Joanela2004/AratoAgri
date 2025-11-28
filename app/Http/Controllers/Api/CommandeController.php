@@ -111,7 +111,13 @@ class CommandeController extends Controller
                 'referenceCommande' => $reference,
             ]);
     
-            // Ajouter les détails
+    Paiement::create([
+    'numCommande'   => $commande->numCommande,
+    'numModePaiement' => $request->numModePaiement,
+    'montantApayer' => $montantFinal,
+    'statut'        => 'en attente',
+    'datePaiement'  => null
+]);
             foreach ($panier as $item) {
                 DetailCommande::create([
                     'numCommande'   => $commande->numCommande,
@@ -124,7 +130,6 @@ class CommandeController extends Controller
             }
            
 
-            // Créer la livraison
             $nomLieu = $request->lieuNom;
             if (!$nomLieu && $request->numLieu) {
                 $nomLieu = LieuLivraison::find($request->numLieu)?->nomLieu ?? 'Lieu inconnu';

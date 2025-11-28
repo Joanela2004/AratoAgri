@@ -40,13 +40,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
      Route::get('utilisateurs/{id}', [UtilisateurController::class, 'show']);
     Route::post('utilisateurs/{id}', [UtilisateurController::class, 'update']); 
+    Route::get('mesCommandes/{numCommande}/livraison', [LivraisonController::class, 'showByCommandeClient']);
 
   
 
    
     // Commandes
    Route::get('/mesCommandes', [CommandeController::class, 'indexClient']);
-    Route::get('/mesCommandes/{id}', [CommandeController::class, 'showClient']);
+   Route::get('/mesCommandes/{id}', [CommandeController::class, 'showClient']);
 
     Route::post('/commandes', [CommandeController::class, 'store']); // ← La plus importante
 
@@ -64,8 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('frais_livraisons', FraisLivraisonController::class)->except(['index']);
     
     Route::put('livraisons/{id}', [LivraisonController::class, 'update']);
-    Route::get('livraisons/{id}', [LivraisonController::class, 'show']);
-    Route::get('livraisons', [LivraisonController::class, 'index']);
+     Route::get('livraisons', [LivraisonController::class, 'index']);
     
     Route::apiResource('modes_paiement', ModePaiementController::class)->except(['actifs']);
     
