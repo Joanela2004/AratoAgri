@@ -28,7 +28,7 @@ Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail'])->nam
 
 // Stripe
 
-Route::post('/create-checkout-session', [StripeController::class, 'createCheckoutSession']);
+Route::post('/paiement/stripe/create-session', [StripeController::class, 'createCheckoutSession']);
 Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
 
 
@@ -45,8 +45,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
    
     // Commandes
-    Route::get('/commandes/client', [CommandeController::class, 'indexClient']);
-    Route::get('/commandes/client/{id}', [CommandeController::class, 'showClient']);
+   Route::get('/mesCommandes', [CommandeController::class, 'indexClient']);
+    Route::get('/mesCommandes/{id}', [CommandeController::class, 'showClient']);
+
     Route::post('/commandes', [CommandeController::class, 'store']); // ← La plus importante
 
     // Admin only (si tu veux protéger plus tard)

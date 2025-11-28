@@ -54,7 +54,7 @@ class CommandeController extends Controller
         $userId = auth()->id();
 
         $request->validate([
-            'numModePaiement' => 'required|exists:mode_Paiements,numModePaiement',
+            'numModePaiement' => 'nullable|exists:mode_Paiements,numModePaiement',
             'numLieu'         => 'nullable|exists:lieux_livraison,numLieu',
             'lieuNom'         => 'nullable|string|max:255',
             'payerLivraison'  => 'boolean',
@@ -68,8 +68,7 @@ class CommandeController extends Controller
             'panier.*.poids'      => 'required|numeric|min:0.01',
             'panier.*.decoupe'    => 'nullable|string',
         ]);
-
-        // Fallback : si panier vide → utiliser le panier fusionné (connexion récente)
+       
         $panier = $request->panier;
         if (empty($panier)) {
             $panier = AuthController::recupererPanierFusionne($userId);
@@ -102,7 +101,7 @@ class CommandeController extends Controller
                 'numModePaiement'   => $request->numModePaiement,
                 'numLieu'           => $request->numLieu,
                 'lieuNom'           => $request->lieuNom,
-                'statut'            => 'en attente',           // Toujours en attente à la création
+                'statut'            => 'en attente',
                 'sousTotal'         => $request->sousTotal,
                 'fraisLivraison'    => $request->fraisLivraison,
                 'montantTotal'      => $montantFinal,
@@ -135,17 +134,10 @@ class CommandeController extends Controller
                 'numCommande'     => $commande->numCommande,
                 'lieuLivraison'   => $nomLieu,
                 'fraisLivraison'  => $request->fraisLivraison,
-                'statutLivraison' => 'en attente',
+                'statutLivraison' =>'en cours',
                 'referenceColis'  => 'LV-' . strtoupper(\Illuminate\Support\Str::random(8)),
             ]);
-                     Paiement::create([
-    
-    'numCommande'     => $commande->numCommande,
-    'numModePaiement' => $request->numModePaiement,
-    'montantApayer'   => $montantFinal,
-    'statut'          => 'en attente',
-    'datePaiement'    => null,
-    ]);
+                   
             // Nettoyer le panier fusionné
             AuthController::viderPanierFusionne($userId);
 

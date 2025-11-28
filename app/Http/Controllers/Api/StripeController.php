@@ -10,90 +10,108 @@ use App\Models\Commande;
 
 class StripeController extends Controller
 {
-    public function createCheckoutSession(Request $request)
-    {
-        $panier = $request->input('panier', []);
-        $fraisLivraison = $request->input('fraisLivraison', 0);
-        $remise = $request->input('remise', 0);
-        $numCommande = $request->input('numCommande');
-        $userId = $request->input('user_id');
 
-        Stripe::setApiKey(env('STRIPE_SECRET')); // Tes clés test marchent
+public function createCheckoutSession(Request $request)
+{
+    $request->validate([
+        'referenceCommande' => 'required|string',
+        'montantTotal' => 'required|numeric|min:1',
+    ]);
 
-        try {
-            // 1. Calcul total en Ariary
-            $totalProduits = 0;
-            foreach ($panier as $item) {
-                $prixUnitaire = $item['prixApresDecoupe'] ?? $item['prixPerKg'] ?? 0;
-                $poids = $item['poids'] ?? 1;
-                $totalProduits += $prixUnitaire * $poids;
-            }
+    $referenceCommande = $request->input('referenceCommande');
+    $montantTotalAr = $request->input('montantTotal'); 
 
-            $montantTotalAr = $totalProduits + $fraisLivraison - $remise;
+    Stripe::setApiKey(env('STRIPE_SECRET'));
 
-            // 2. Conversion en USD (1 USD ≈ 4500 Ar – taux moyen 2025)
-            $tauxUsd = 4500;
-            $montantUsd = $montantTotalAr / $tauxUsd;
+    try {
+        $tauxUsd = 4500;
+        $montantUsd = $montantTotalAr / $tauxUsd;
 
-            // 3. Création session Stripe en USD
-            $session = Session::create([
-                'payment_method_types' => ['card'],
-                'line_items' => [[
-                    'price_data' => [
-                        'currency' => 'usd', // ← USD (fonctionne à 100 % sur ton compte)
-                        'product_data' => [
-                            'name' => 'Commande #' . $numCommande . ' – ' . number_format($montantTotalAr, 0, ',', ' ') . ' Ar',
-                        ],
-                        'unit_amount' => intval($montantUsd * 100), // centimes
+        $session = Session::create([
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => "Commande #{$referenceCommande} – " . number_format($montantTotalAr, 0, ',', ' ') . ' Ar',
                     ],
-                    'quantity' => 1,
-                ]],
-                'mode' => 'payment',
-                'success_url' => env('FRONTEND_URL') . '/success?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url' => env('FRONTEND_URL') . '/cancel',
-                'metadata' => [
-                    'numCommande' => $numCommande,
-                    'user_id' => $userId,
-                    'montant_ariary' => $montantTotalAr,
+                    'unit_amount' => intval($montantUsd * 100),
                 ],
-            ]);
-
-            return response()->json([
-                'url' => $session->url,
-                'session_id' => $session->id,
+                'quantity' => 1,
+            ]],
+            'mode' => 'payment',
+            'success_url' => env('FRONTEND_URL') . '/success?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => env('FRONTEND_URL') . '/cancel',
+            'metadata' => [
+                'referenceCommande' => $referenceCommande,
                 'montant_ariary' => $montantTotalAr,
-                'montant_usd' => round($montantUsd, 2),
-            ]);
+            ],
+        ]);
 
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        return response()->json([
+            'url' => $session->url,
+            'session_id' => $session->id,
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
+  public function webhook(Request $request)
+{
+    $payload = $request->getContent();
+    $sigHeader = $request->header('Stripe-Signature');
+    $endpointSecret = env('STRIPE_WEBHOOK_SECRET');
+
+    try {
+        $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
+    } catch (\Exception $e) {
+        return response('Webhook error: ' . $e->getMessage(), 400);
     }
 
-    // Webhook (inchangé – parfait)
-    public function webhook(Request $request)
-    {
-        $payload = $request->getContent();
-        $sigHeader = $request->header('Stripe-Signature');
-        $endpointSecret = env('STRIPE_WEBHOOK_SECRET');
+    // Paiement réussi
+    if ($event->type === 'checkout.session.completed') {
+        $session = $event->data->object;
 
-        try {
-            $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
-        } catch (\Exception $e) {
-            return response('Invalid signature', 400);
+        $referenceCommande = $session->metadata->referenceCommande ?? null;
+        if (!$referenceCommande) {
+            return response()->json(['status' => 'no reference'], 200);
         }
 
-        if ($event->type === 'checkout.session.completed') {
-            $session = $event->data->object;
-            $numCommande = $session->metadata->numCommande;
+        $commande = Commande::where('referenceCommande', $referenceCommande)->first();
+        if (!$commande) {
+            return response()->json(['status' => 'commande not found'], 404);
+        }
 
-            $commande = Commande::where('numCommande', $numCommande)->first();
-            if ($commande) {
-                $commande->update(['statut' => 'payée']);
-                // Optionnel : envoyer email, notifier admin, etc.
+        // Éviter double traitement
+        if ($commande->statut === 'payée') {
+            return response()->json(['status' => 'already paid'], 200);
+        }
+
+        DB::transaction(function () use ($commande, $session) {
+            // 1. Mettre à jour le paiement
+            $paiement = Paiement::where('numCommande', $commande->numCommande)->first();
+            if ($paiement) {
+                $paiement->update([
+                    'statut' => 'effectué',
+                    'datePaiement' => now(),
+                ]);
             }
-        }
 
-        return response()->json(['status' => 'success']);
+            // 2. Mettre à jour la commande
+            $commande->update(['statut' => 'payée']);
+
+            // 3. Déduire le stock (une seule fois !)
+            foreach ($commande->detailCommandes as $detail) {
+                Produit::where('numProduit', $detail->numProduit)
+                    ->decrement('poids', $detail->poids);
+            }
+        });
+
+      
     }
+
+    return response()->json(['status' => 'success']);
+}
 }
