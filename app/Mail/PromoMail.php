@@ -5,31 +5,23 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Contracts\Queue\ShouldQueue;
-
 class PromoMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $promotions;
+    public $promo;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct($promotions)
+    public function __construct($promo)
     {
-        $this->promotions = $promotions;
+        $this->promo = $promo;
     }
 
-    /**
-     * Build the message.
-     */
     public function build()
     {
-        return $this->subject('🎁 Vos codes promo actifs')
-                    ->markdown('emails.promotions')
+        return $this->subject('Votre code promo exclusif !')
+                    ->view('emails.promotions')
                     ->with([
-                        'promotions' => $this->promotions,
+                        'promo' => $this->promo
                     ]);
     }
 }

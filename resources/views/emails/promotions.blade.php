@@ -1,21 +1,25 @@
-@component('mail::message')
-# Bonjour cher client !
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Code Promo</title>
+</head>
+<body>
+    <h2>Bonjour {{ $promo['nomClient'] }} !</h2>
 
-Nous avons pensé à vous 🎁  
-Voici les codes promo que vous pouvez utiliser pour profiter de réductions lors de vos prochains achats :
+    <p>Nous avons pensé à vous 🎁</p>
 
-@foreach($promotions as $promo)
-- **Code :** {{ $promo->codePromo }}
-- **Promotion :** {{ $promo->nomPromotion }} – Recevez {{ $promo->valeur }}{{ $promo->typePromotion == 'Pourcentage' ? '%' : ' Ar' }} de réduction !
-- **Valable jusqu’au :** {{ \Carbon\Carbon::parse($promo->dateFin)->format('d/m/Y') }}
+    <p>Voici votre code promo exclusif :</p>
 
-> Ne ratez pas cette opportunité, appliquez ce code lors de votre prochain achat !
----
-@endforeach
+    <ul>
+        <li><strong>Code :</strong> {{ $promo['codePromo'] }}</li>
+        <li><strong>Promotion :</strong> {{ $promo['nomPromotion'] }}</li>
+        <li><strong>Réduction :</strong> {{ $promo['valeur'] }}{{ $promo['type'] == 'Pourcentage' ? '%' : ' Ar' }}</li>
+        <li><strong>Valable jusqu'au :</strong> {{ \Carbon\Carbon::parse($promo['dateFin'])->format('d/m/Y') }}</li>
+    </ul>
 
-Nous espérons que cela rendra votre expérience shopping encore plus agréable 😃  
+    <p>Utilisez ce code lors de votre prochain achat pour profiter de votre réduction !</p>
 
-Merci de votre fidélité et à très bientôt !  
-L’équipe de votre boutique.
-
-@endcomponent
+    <p>Merci de votre fidélité !<br>L’équipe de votre boutique.</p>
+</body>
+</html>

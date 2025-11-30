@@ -31,8 +31,20 @@ class CommandeController extends Controller
 
         return response()->json($commandes);
     }
+public function index()
+{
+    $commandes = Commande::with([
+            'utilisateur',
+            'detailCommandes.produit',
+            'livraisons',
+            'modePaiement',
+            'lieu'
+        ])
+        ->latest()
+        ->get();
 
-    // === Détail commande client ===
+    return response()->json($commandes);
+}
     public function showClient($id)
     {
         $commande = Commande::with([
@@ -48,7 +60,20 @@ class CommandeController extends Controller
         return response()->json($commande);
     }
 
-    // === CRÉATION COMMANDE – ON NE DÉDUIT PAS LE STOCK ICI ===
+
+public function show($numCommande)
+{
+    $commande = Commande::with([
+        'utilisateur',
+        'detailCommandes.produit',
+        'livraisons',
+        'modePaiement',
+        'lieu',
+        'promotion'
+    ])->findOrFail($numCommande);
+
+    return response()->json($commande);
+}
     public function store(Request $request)
     {
         $userId = auth()->id();

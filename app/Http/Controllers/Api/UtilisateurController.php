@@ -77,12 +77,12 @@ class UtilisateurController extends Controller
 
         $data = $request->only(['nomUtilisateur', 'contact']);
 
-        if ($request->has('email') && $request->email !== $utilisateur->email) {
-            $data['email'] = $request->email;
-            $data['email_verified_at'] = null; 
-            $data['email_verification_token'] = Str::random(60);
-            Mail::to($request->email)->send(new VerificationEmail($utilisateur));
-        }
+        // if ($request->has('email') && $request->email !== $utilisateur->email) {
+        //     $data['email'] = $request->email;
+        //     $data['email_verified_at'] = null; 
+        //     $data['email_verification_token'] = Str::random(60);
+        //     Mail::to($request->email)->send(new VerificationEmail($utilisateur));
+        // }
 
         if ($request->hasFile('image')) {
             if ($utilisateur->image && Storage::disk('public')->exists($utilisateur->image)) {

@@ -17,12 +17,13 @@ class PromotionUtilisateur extends Model
 
     protected $primaryKey = 'numPromotion_Utilisateur';
 
-    protected $fillable = [
-        'numPromotion',
-        'numUtilisateur',
-        'statut',
-        'dateExpiration',
-    ];
+   protected $fillable = [
+    'numPromotion',
+    'numUtilisateur',
+    'code_envoye',
+    'date_expiration',
+    'statut',
+];
 
     public function promotion()
     {

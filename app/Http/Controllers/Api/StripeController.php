@@ -30,15 +30,15 @@ public function createCheckoutSession(Request $request)
 
     $session = Session::create([
         'payment_method_types' => ['card'],
-        'line_items' => [[
-            'price_data' => [
-                'currency' => 'usd',
-                'product_data' => [
-                    'name' => "Commande #{$referenceCommande} – " . number_format($montantTotalAr, 0, ',', ' ') . ' Ar',
-                ],
-                'unit_amount' => intval(($montantTotalAr / 4500) * 100),
+    'line_items' => [[
+        'price_data' => [
+            'currency' => 'mga',
+            'product_data' => [
+                'name' => "Commande #{$referenceCommande}",
             ],
-            'quantity' => 1,
+            'unit_amount' => $montantTotalAr * 100, 
+        ],
+        'quantity' => 1,
         ]],
         'mode' => 'payment',
         'success_url' => env('FRONTEND_URL') . '/success?session_id={CHECKOUT_SESSION_ID}',

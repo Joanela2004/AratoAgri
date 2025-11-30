@@ -68,25 +68,57 @@ class PromotionController extends Controller
         return response()->json(null, 204);
     }
 
-public function sendEmailToUsers()
+public function sendPromoToClient(Request $request)
 {
-    $today = now();
-    $promotions = Promotion::where('dateFin', '>=', $today)
-                            ->where('statutPromotion', 'Active')
-                            ->get();
+    $request->validate([
+        'numUtilisateur' => 'required|exists:utilisateurs,numUtilisateur',
+        'codePromo'      => 'required|exists:promotions,codePromo',
+        'email'          => 'required|email',
+        'nomClient' => 'required|string',
+    ]);
 
-    $users = Utilisateur::where('role', 'client')->get();
+    $promotion = Promotion::where('codePromo', $request->codePromo)->firstOrFail();
+    $userId    = $request->numUtilisateur;
 
-    foreach ($users as $user) {
-        Mail::to($user->email)->send(new PromoMail($promotions));
+    // Éviter les doublons
+    $dejaEnvoye = PromotionUtilisateur::where('numPromotion', $promotion->numPromotion)
+                                       ->where('numUtilisateur', $userId)
+                                       ->exists();
+
+    if ($dejaEnvoye) {
+        return response()->json(['message' => 'Déjà envoyé à ce client'], 409);
     }
 
-    return response()->json(['message' => 'E-mails envoyés avec succès'], 200);
+  PromotionUtilisateur::create([
+    'numPromotion'    => $promotion->numPromotion,
+    'numUtilisateur'   => $userId,
+    'code_envoye'      => $promotion->codePromo,   
+    'date_expiration'  => $promotion->dateFin,
+    'statut'           => 'valide',
+]);
 
+  Mail::to($request->email)->send(new PromoMail([
+    'nomClient' => $request->nomClient,
+    'codePromo' => $promotion->codePromo,
+    'valeur'    => $promotion->valeur,
+    'type'      => $promotion->typePromotion,
+    'dateFin'   => $promotion->dateFin,
+    'nomPromotion' => $promotion->nomPromotion,
+]));
 
-
+    return response()->json(['success' => true, 'message' => 'Code envoyé !']);
 }
-public function validerCodePromo(Request $request)
+public function checkIfSent($numPromotion, $numUtilisateur)
+{
+    $existe = \DB::table('promotion_utilisateur')
+        ->where('numPromotion', $numPromotion)
+        ->where('numUtilisateur', $numUtilisateur)
+        ->exists();
+
+    return response()->json(['sent' => $existe]);
+}
+
+public function valider(Request $request)
 {
     $request->validate([
         'codePromo' => 'required|string',
@@ -112,7 +144,7 @@ public function validerCodePromo(Request $request)
     }
 
     // Vérifier expiration
-    if ($promoUser->dateExpiration && now()->greaterThan($promoUser->dateExpiration)) {
+    if ($promoUser->date_expiration && now()->greaterThan($promoUser->date_expiration)) {
         return response()->json(['message' => 'Code promo expiré'], 400);
     }
 
