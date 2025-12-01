@@ -189,11 +189,8 @@ class AuthController extends Controller
         return response()->json(['message' => 'Déconnexion réussie'], 200);
     }
 
-    /**
-     * Change le mot de passe de l'utilisateur
-     * Vérifie l'ancien mot de passe et déconnecte après changement
-     */
-    public function changerMotDePasse(Request $request)
+    public function changePassword(Request $request)
+
     {
         $user = $request->user();
 

@@ -187,50 +187,50 @@ public function show($numCommande)
         }
     }
 
-    // === MISE À JOUR STATUT – C'EST ICI QU'ON GÈRE LE STOCK ===
-    public function update(Request $request, $id)
-    {
-        $commande = Commande::with('detailCommandes.produit')->findOrFail($id);
-        $ancienStatut = $commande->statut;
+   public function update(Request $request, $id)
+{
+    $commande = Commande::with('detailCommandes.produit')->findOrFail($id);
+    $ancienStatut = $commande->statut;
 
-        $request->validate([
-            'statut' => 'sometimes|in:en attente,validée,payée,expédiée,annulée,livrée',
-            'payerLivraison' => 'sometimes|boolean',
-        ]);
+    $request->validate([
+        'statut' => 'sometimes|in:en attente,validée,payée,expédiée,annulée,livrée',
+        'payerLivraison' => 'sometimes|boolean',
+        'estConsulte' => 'sometimes|boolean',
+    ]);
 
-        if ($request->has('statut')) {
-            $nouveauStatut = $request->statut;
-
-            // DÉDUIRE LE STOCK QUAND LA COMMANDE EST VALIDÉE OU PAYÉE
-            if (in_array($nouveauStatut, ['validée', 'payée']) && !in_array($ancienStatut, ['validée', 'payée'])) {
-                foreach ($commande->detailCommandes as $detail) {
-                    Produit::where('numProduit', $detail->numProduit)
-                           ->decrement('poids', $detail->poids);
-                }
-            }
-
-            // REMETTRE LE STOCK SI ANNULÉE
-            if ($nouveauStatut === 'annulée' && $ancienStatut !== 'annulée') {
-                foreach ($commande->detailCommandes as $detail) {
-                    Produit::where('numProduit', $detail->numProduit)
-                           ->increment('poids', $detail->poids);
-                }
-            }
-
-            $commande->statut = $nouveauStatut;
-        }
-
-        if ($request->has('payerLivraison')) {
-            $commande->payerLivraison = $request->payerLivraison;
-        }
-
-        $commande->save();
-
-        return response()->json([
-            'message' => 'Commande mise à jour',
-            'commande' => $commande->load(['detailCommandes.produit', 'livraisons'])
-        ]);
+    if ($request->has('estConsulte')) {
+        $commande->estConsulte = $request->estConsulte;
     }
+
+    if ($request->has('statut')) {
+        $nouveauStatut = $request->statut;
+
+        if (in_array($nouveauStatut, ['validée', 'payée']) && !in_array($ancienStatut, ['validée', 'payée'])) {
+            foreach ($commande->detailCommandes as $detail) {
+                Produit::where('numProduit', $detail->numProduit)->decrement('poids', $detail->poids);
+            }
+        }
+
+        if ($nouveauStatut === 'annulée' && $ancienStatut !== 'annulée') {
+            foreach ($commande->detailCommandes as $detail) {
+                Produit::where('numProduit', $detail->numProduit)->increment('poids', $detail->poids);
+            }
+        }
+
+        $commande->statut = $nouveauStatut;
+    }
+
+    if ($request->has('payerLivraison')) {
+        $commande->payerLivraison = $request->payerLivraison;
+    }
+
+    $commande->save();
+
+    return response()->json([
+        'message' => 'Commande mise à jour',
+        'commande' => $commande->load(['detailCommandes.produit', 'livraisons'])
+    ]);
+}
 
     // === Annulation par le client (optionnel) ===
     public function destroy($id)

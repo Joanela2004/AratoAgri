@@ -11,7 +11,7 @@ class Promotion extends Model
     protected $casts = [
         'dateDebut' => 'date',
         'dateFin'   => 'date',
-        'statutPromotion' => 'boolean',
+
     ];
     public function produits()
     {

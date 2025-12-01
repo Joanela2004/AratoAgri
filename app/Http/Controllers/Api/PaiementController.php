@@ -9,9 +9,24 @@ use Illuminate\Support\Facades\Validator;
 
 class PaiementController extends Controller
 {
-    public function index()
+   public function index()
     {
-        return response()->json(Paiement::with('commande','modePaiement')->get());
+        try {
+            $paiements = Paiement::with([
+                'commande.utilisateur',
+                'mode_paiement'
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+            return response()->json($paiements);
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans PaiementController@index : ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Erreur serveur lors du chargement des paiements',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function show($id)
