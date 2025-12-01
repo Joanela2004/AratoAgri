@@ -30,7 +30,7 @@ class ProduitController extends Controller
             'nomProduit' => 'required|string|max:255',
             'prix' => 'required|numeric|min:0',
             'poids' => 'required|numeric|min:0',
-            'quantiteStock' => 'required|integer|min:0',
+            
             'image' => 'nullable|image|max:2048',
             'numCategorie' => 'required|exists:categories,numCategorie',
             'numPromotion' => 'nullable|exists:promotions,numPromotion'
@@ -59,7 +59,7 @@ class ProduitController extends Controller
             'nomProduit' => 'sometimes|required|string|max:255',
             'prix' => 'sometimes|required|numeric|min:0',
             'poids' => 'sometimes|required|numeric|min:0',
-            'quantiteStock' => 'sometimes|required|integer|min:0',
+           
             'image' => 'nullable|image|max:2048',
             'numCategorie' => 'sometimes|required|exists:categories,numCategorie',
             'numPromotion' => 'nullable|exists:promotions,numPromotion'

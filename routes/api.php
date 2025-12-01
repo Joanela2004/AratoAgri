@@ -61,8 +61,8 @@ Route::put('utilisateurs/{id}', [UtilisateurController::class, 'update']);
    
     Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
   
-   
-        Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/paiements/{numCommande}/confirmer', [PaiementController::class, 'confirmerPaiement']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::put('/commandes/{numCommande}', [CommandeController::class, 'update']); 
     Route::get('utilisateurs', [UtilisateurController::class, 'index']); 
     Route::post('/send-promo-to-client', [PromotionController::class, 'sendPromoToClient']);

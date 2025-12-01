@@ -14,7 +14,7 @@ class Produit extends Model
         'nomProduit',
         'prix',
         'poids',
-        'quantiteStock',
+        
         'image',
         'numCategorie',
         'numPromotion'
