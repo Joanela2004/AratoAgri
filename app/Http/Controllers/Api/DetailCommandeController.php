@@ -14,7 +14,7 @@ class DetailCommandeController extends Controller
     //lister tous les details de commande
     public function index()
     {
-        $details = DetailCommande::with(['commande','produit'])->get();
+        $details = DetailCommande::with(['commande','produit.categorie' ])->get();
         return response()->json($details,200);
     }
 

@@ -65,7 +65,7 @@ public function show($numCommande)
 {
     $commande = Commande::with([
         'utilisateur',
-        'detailCommandes.produit',
+        'detailCommandes.produit.categorie',
         'livraisons',
         'modePaiement',
         'lieu',
@@ -119,7 +119,8 @@ public function show($numCommande)
 
         DB::beginTransaction();
         try {
-            $reference = 'CMD-' . str_pad((Commande::max('numCommande') ?? 0) + 1, 6, '0', STR_PAD_LEFT);
+            $reference = 'CMD-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
 
             $commande = Commande::create([
                 'numUtilisateur'    => $userId,
@@ -165,7 +166,7 @@ public function show($numCommande)
                 'lieuLivraison'   => $nomLieu,
                 'fraisLivraison'  => $request->fraisLivraison,
                 'statutLivraison' =>'en cours',
-                'referenceColis'  => 'LV-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'referenceColis'  => 'LV-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT),
             ]);
                    
             // Nettoyer le panier fusionné

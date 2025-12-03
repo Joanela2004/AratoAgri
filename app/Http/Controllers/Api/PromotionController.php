@@ -159,5 +159,14 @@ public function valider(Request $request)
         'typePromotion' => $promotion->typePromotion
     ], 200);
 }
+public function restore($id)
+{
+    $promotion = Promotion::withTrashed()->find($id);
+    if (!$promotion) return response()->json(['message' => 'Promotion non trouvée'], 404);
+
+    $promotion->restore();
+    return response()->json(['message' => 'Promotion restaurée', 'data' => $promotion]);
+}
+
 
 };

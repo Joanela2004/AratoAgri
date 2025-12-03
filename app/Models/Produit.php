@@ -4,20 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Produit extends Model
 {
     use HasFactory;
 
+    use SoftDeletes;
+    protected $dates = ['deleted_at'];
     protected $primaryKey = 'numProduit';
     protected $fillable = [
         'nomProduit',
         'prix',
-        'poids',
-        
+        'poids',  
         'image',
         'numCategorie',
-        'numPromotion'
+        'numPromotion',
+        'cout'
     ];
 
     public function categorie()

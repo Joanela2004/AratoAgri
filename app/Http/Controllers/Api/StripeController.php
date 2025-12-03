@@ -36,7 +36,7 @@ public function createCheckoutSession(Request $request)
             'product_data' => [
                 'name' => "Commande #{$referenceCommande}",
             ],
-            'unit_amount' => $montantTotalAr * 100, 
+            'unit_amount' => $montantTotalAr, 
         ],
         'quantity' => 1,
         ]],

@@ -25,11 +25,11 @@ class DetailCommande extends Model
     {
         return $this->belongsTo(Commande::class, 'numCommande', 'numCommande');
     }
+public function produit()
+{
+    return $this->belongsTo(Produit::class, 'numProduit', 'numProduit')->withTrashed();
+}
 
-    public function produit()
-    {
-        return $this->belongsTo(Produit::class, 'numProduit', 'numProduit');
-    }
 
     public function decoupe()
     {

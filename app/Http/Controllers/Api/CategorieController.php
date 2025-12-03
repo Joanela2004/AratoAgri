@@ -23,24 +23,51 @@ class CategorieController extends Controller
         return response()->json($categorie);
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nomCategorie' => 'required|string|unique:categories,nomCategorie'
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'nomCategorie' => 'required|string'
+       
+    ]);
 
-        $nom = strtolower($request->nomCategorie);
-        $nom = rtrim($nom, 's');
+    $nom = $request->nomCategorie;
+    $nomNormalise = strtolower(rtrim($nom, 's')); 
 
-        if (Categorie::whereRaw('LOWER(nomCategorie) = ?', [$nom])->exists()) {
-        return response()->json(['message' => 'Cette catégorie existe déjà !'], 422);
+    $existingActive = Categorie::where(function ($query) use ($nom, $nomNormalise) {
+        $query->where('nomCategorie', $nom)
+              ->orWhereRaw('LOWER(TRIM(TRAILING "s" FROM nomCategorie)) = ?', [$nomNormalise]);
+    })->whereNull('deleted_at') 
+      ->first();
+
+    if ($existingActive) {
+        return response()->json([
+            'message' => 'The nom categorie has already been taken.',
+            'errors'  => ['nomCategorie' => ['Cette catégorie existe déjà.']]
+        ], 422);
     }
-        $categorie = Categorie::create([
-            'nomCategorie' => $request->nomCategorie
-        ]);
 
-        return response()->json($categorie, 201);
+    $existingDeleted = Categorie::onlyTrashed()
+        ->where(function ($query) use ($nom, $nomNormalise) {
+            $query->where('nomCategorie', $nom)
+                  ->orWhereRaw('LOWER(TRIM(TRAILING "s" FROM nomCategorie)) = ?', [$nomNormalise]);
+        })->first();
+
+    if ($existingDeleted) {
+        return response()->json([
+            'message'        => 'Categorie soft deleted',
+            'soft_deleted'   => true,
+            'categorie_id'   => $existingDeleted->numCategorie,
+            'categorie_nom'  => $existingDeleted->nomCategorie
+        ], 409); // 409 Conflict = ressource existe mais dans un état particulier
     }
+
+    // 3. Si rien trouvé → création normale
+    $categorie = Categorie::create([
+        'nomCategorie' => $nom
+    ]);
+
+    return response()->json($categorie, 201);
+}
 
     public function update(Request $request, $id)
     {
@@ -54,7 +81,7 @@ class CategorieController extends Controller
         return response()->json($categorie);
     }
 
-  public function destroy($id)
+ public function destroy($id)
 {
     $categorie = Categorie::find($id);
 
@@ -62,15 +89,19 @@ class CategorieController extends Controller
         return response()->json(['message' => 'Catégorie non trouvée'], 404);
     }
 
-      if ($categorie->produits()->count() > 0) {
-        return response()->json([
-            'message' => 'Impossible de supprimer cette catégorie : elle contient des produits'
-        ], 422);
-    }
-
-      $categorie->delete();
+    $categorie->delete(); // Soft delete, produits liés non affectés
 
     return response()->json(['message' => 'Catégorie supprimée avec succès'], 200);
+}
+
+public function restore($id)
+{
+    $categorie = Categorie::withTrashed()->find($id);
+    if (!$categorie) {
+        return response()->json(['message' => 'Catégorie non trouvée'], 404);
+    }
+    $categorie->restore();
+    return response()->json(['message' => 'Catégorie restaurée avec succès', 'data' => $categorie]);
 }
 
 }

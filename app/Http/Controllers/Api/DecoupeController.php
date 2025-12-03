@@ -19,21 +19,39 @@ class DecoupeController extends Controller
         $decoupe = Decoupe::findOrFail($id);
         return response()->json($decoupe, 200);
     }
+public function store(Request $request)
+{
+    $request->validate([
+        'nomDecoupe' => 'required|string|max:255',
+        'coefficient' => 'required|numeric|min:0.01'
+    ]);
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nomDecoupe' => 'required|string|max:255',
-            'coefficient' => 'required|numeric|min:0.01'
-        ]);
+    $exists = Decoupe::where('nomDecoupe', $request->nomDecoupe)->exists();
 
-        $decoupe = Decoupe::create([
-            'nomDecoupe' => $request->nomDecoupe,
-            'coefficient' => $request->coefficient
-        ]);
-
-        return response()->json($decoupe, 201);
+    if ($exists) {
+        return response()->json([
+            'message' => 'Cette découpe existe déjà.'
+        ], 422);
     }
+    $deleted = Decoupe::onlyTrashed()
+        ->where('nomDecoupe', $request->nomDecoupe)
+        ->first();
+
+    if ($deleted) {
+        return response()->json([
+            'soft_deleted' => true,
+            'decoupe_id'   => $deleted->numDecoupe,
+            'decoupe_nom'  => $deleted->nomDecoupe
+        ], 409); 
+    }
+
+    $decoupe = Decoupe::create([
+        'nomDecoupe'  => $request->nomDecoupe,
+        'coefficient' => $request->coefficient
+    ]);
+
+    return response()->json($decoupe, 201);
+}
 
     public function update(Request $request, $id)
     {
@@ -55,4 +73,14 @@ class DecoupeController extends Controller
         $decoupe->delete();
         return response()->json(['message'=>'Découpe supprimée'], 200);
     }
+    public function restore($id)
+{
+    $decoupe = Decoupe::withTrashed()->find($id);
+    if (!$decoupe) {
+        return response()->json(['message' => 'Découpe non trouvée'], 404);
+    }
+    $decoupe->restore();
+    return response()->json(['message' => 'Découpe restaurée', 'data' => $decoupe]);
+}
+
 }

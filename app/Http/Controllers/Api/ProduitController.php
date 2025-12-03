@@ -5,94 +5,86 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Produit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class ProduitController extends Controller
 {
     public function index()
-    {
-        $produits = Produit::with(['categorie', 'promotion'])->get();
-        return response()->json($produits);
-    }
+{
+    return Produit::with(['categorie','promotion'])
+        ->orderBy("numProduit", "DESC")
+        ->get();
+}
 
-    public function show($id)
-    {
-        $produit = Produit::with(['categorie', 'promotion'])->find($id);
-        if (!$produit) {
-            return response()->json(['message' => 'Produit non trouvé'], 404);
-        }
-        return response()->json($produit);
-    }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nomProduit' => 'required|string|max:255',
-            'prix' => 'required|numeric|min:0',
-            'poids' => 'required|numeric|min:0',
-            
-            'image' => 'nullable|image|max:2048',
+        $validator = Validator::make($request->all(), [
+            'nomProduit' => 'required|string|unique:produits,nomProduit',
+            'prix' => 'required|numeric',
+            'poids' => 'required|numeric',
             'numCategorie' => 'required|exists:categories,numCategorie',
-            'numPromotion' => 'nullable|exists:promotions,numPromotion'
+            'numPromotion' => 'nullable|exists:promotions,numPromotion',
+            'image' => 'nullable|image|max:2048'
         ]);
 
-        $data = $validated;
+        if ($validator->fails()) {
 
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('produits', 'public');
-            $data['image'] = $path;
+            // Vérifier si le produit existe en soft delete
+            $deleted = Produit::onlyTrashed()
+                ->where("nomProduit", $request->nomProduit)
+                ->first();
+
+            if ($deleted) {
+                return response()->json([
+                    "soft_deleted" => true,
+                    "produit_id" => $deleted->numProduit,
+                    "produit_nom" => $deleted->nomProduit
+                ], 409);
+            }
+
+            return response()->json(["message" => $validator->errors()->first()], 422);
         }
 
-        $produit = Produit::create($data);
+        $produit = new Produit($request->except("image"));
+
+        if ($request->hasFile("image")) {
+            $produit->image = $request->file("image")->store("produits", "public");
+        }
+
+        $produit->save();
 
         return response()->json($produit, 201);
     }
 
     public function update(Request $request, $id)
     {
-        $produit = Produit::find($id);
-        if (!$produit) {
-            return response()->json(['message' => 'Produit non trouvé'], 404);
+        $produit = Produit::findOrFail($id);
+
+        $produit->fill($request->except("image"));
+
+        if ($request->hasFile("image")) {
+            $produit->image = $request->file("image")->store("produits", "public");
         }
 
-        $validated = $request->validate([
-            'nomProduit' => 'sometimes|required|string|max:255',
-            'prix' => 'sometimes|required|numeric|min:0',
-            'poids' => 'sometimes|required|numeric|min:0',
-           
-            'image' => 'nullable|image|max:2048',
-            'numCategorie' => 'sometimes|required|exists:categories,numCategorie',
-            'numPromotion' => 'nullable|exists:promotions,numPromotion'
-        ]);
-
-        $data = $validated;
-
-        if ($request->hasFile('image')) {
-            if ($produit->image) {
-                Storage::disk('public')->delete($produit->image);
-            }
-            $path = $request->file('image')->store('produits', 'public');
-            $data['image'] = $path;
-        }
-
-        $produit->update($data);
-
+        $produit->save();
         return response()->json($produit);
     }
 
-    public function destroy($id)
+   public function destroy($id)
+{
+    $produit = Produit::withTrashed()->find($id);
+    if (!$produit) {
+        return response()->json(["message" => "Produit non trouvé"], 404);
+    }
+    $produit->delete();
+    return response()->json(["message" => "Produit supprimé"]);
+}
+
+
+    public function restore($id)
     {
-        $produit = Produit::find($id);
-        if (!$produit) {
-            return response()->json(['message' => 'Produit non trouvé'], 404);
-        }
-
-        if ($produit->image) {
-            Storage::disk('public')->delete($produit->image);
-        }
-
-        $produit->delete();
-
-        return response()->json(['message' => 'Produit supprimé']);
+        Produit::onlyTrashed()->where("numProduit", $id)->restore();
+        return response()->json(["message" => "Produit restauré"]);
     }
 }

@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Promotion extends Model
 {
+
+    use SoftDeletes;
+
+    protected $dates = ['deleted_at'];
     protected $primaryKey = 'numPromotion';
     protected $fillable = ['nomPromotion', 'valeur', 'typePromotion', 'dateDebut', 'dateFin', 'codePromo', 'statutPromotion', 'montantMinimum','numProduit'];
     protected $casts = [

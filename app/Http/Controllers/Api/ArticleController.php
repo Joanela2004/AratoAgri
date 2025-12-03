@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Article;
+use Illuminate\Support\Facades\Storage;
 
 class ArticleController extends Controller
 {
@@ -12,71 +13,76 @@ class ArticleController extends Controller
     {
         return response()->json(Article::all(), 200);
     }
-public function store(Request $request)
-{
-    $request->validate([
-        'titre' => 'required|string|max:100',
-        'description' => 'required|string|max:255',
-        'contenu' => 'required|string|min:10',
-        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048', // validation fichier
-        'auteur' => 'required|string|max:100',
-    ]);
 
-    $articleData = $request->all();
+    public function store(Request $request)
+    {
+        $request->validate([
+            'titre'          => 'required|string|max:100',
+            'description'    => 'required|string|max:255',
+            'contenu'        => 'required|string|min:10',
+            'auteur'         => 'required|string|max:100',
+            'datePublication'=> 'required|date',
+            'image'          => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+        ]);
 
-    if ($request->hasFile('image')) {
-        $image = $request->file('image');
-        $filename = time() . '_' . $image->getClientOriginalName();
-        $image->storeAs('public/articles', $filename);
-        $articleData['image'] = $filename;
-    }
+        $data = $request->only(['titre', 'description', 'contenu', 'auteur', 'datePublication']);
 
-    $article = Article::create($articleData);
-    return response()->json($article, 201);
-}
-
-public function update(Request $request, string $id)
-{
-    $article = Article::findOrFail($id);
-
-    $request->validate([
-        'titre' => 'sometimes|string|max:100',
-        'description' => 'sometimes|string|max:255',
-        'contenu' => 'sometimes|string|min:10',
-        'image' => 'sometimes|image|mimes:jpg,jpeg,png,gif|max:2048',
-        'auteur' => 'sometimes|string|max:100',
-        'datePublication' => 'sometimes|date',
-    ]);
-
-    $articleData = $request->all();
-
-    if ($request->hasFile('image')) {
-               if ($article->image) {
-            \Storage::delete('public/articles/' . $article->image);
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('articles', 'public');
         }
-        $image = $request->file('image');
-        $filename = time() . '_' . $image->getClientOriginalName();
-        $image->storeAs('public/articles', $filename);
-        $articleData['image'] = $filename;
+
+        $article = Article::create($data);
+
+        return response()->json($article, 201);
     }
 
-    $article->update($articleData);
-    return response()->json($article, 200);
-}
-
-
-    public function show(string $id)
+    public function update(Request $request, string $id)
     {
         $article = Article::findOrFail($id);
+
+        $request->validate([
+            'titre'          => 'sometimes|required|string|max:100',
+            'description'    => 'sometimes|required|string|max:255',
+            'contenu'        => 'sometimes|required|string|min:10',
+            'auteur'         => 'sometimes|required|string|max:100',
+            'datePublication'=> 'sometimes|required|date',
+            'image'          => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+        ]);
+
+        $data = $request->only(['titre', 'description', 'contenu', 'auteur', 'datePublication']);
+
+        if ($request->hasFile('image')) {
+
+            // Supprime l'ancienne image
+            if ($article->image) {
+                Storage::disk('public')->delete($article->image);
+            }
+
+            // Enregistre la nouvelle image
+            $data['image'] = $request->file('image')->store('articles', 'public');
+        }
+
+        $article->update($data);
+
         return response()->json($article, 200);
     }
 
-       
+    public function show(string $id)
+    {
+        return response()->json(Article::findOrFail($id));
+    }
 
     public function destroy(string $id)
     {
         $article = Article::findOrFail($id);
+
+        // suppression correcte
+        if ($article->image) {
+            Storage::disk('public')->delete($article->image);
+        }
+
         $article->delete();
-        return response()->json(['message'=>'Article supprimé'], 200);
+
+        return response()->json(['message' => 'Article supprimé']);
     }
 }
