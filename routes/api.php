@@ -65,7 +65,6 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
     Route::post('/paiements/{numCommande}/confirmer', [PaiementController::class, 'confirmerPaiement']);
     Route::put('/commandes/{numCommande}', [CommandeController::class, 'update']); 
     Route::get('utilisateurs', [UtilisateurController::class, 'index']); 
-    Route::post('/send-promo-to-client', [PromotionController::class, 'sendPromoToClient']);
     Route::apiResource('paiements', PaiementController::class);
     Route::apiResource('commandes', CommandeController::class)->except(['store','showClient','indexClient']);
 
@@ -79,6 +78,9 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
 
     // Promotions
     Route::apiResource('promotions', PromotionController::class);
+
+    Route::post('/send-promo-to-client', [PromotionController::class, 'sendPromoToClient']);
+     Route::post('promotions/{id}/restore', [PromotionController::class, 'restore']);
     Route::get('/promotions/deja-envoye/{numPromotion}/{numUtilisateur}', [PromotionController::class, 'checkIfSent']);
 
     // PRODUITS avec soft delete + restore
