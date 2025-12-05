@@ -43,7 +43,7 @@ Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
 // ==================== ROUTES AUTHENTIFIÉES ====================
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/logout', [AuthController::class, 'deconnexion']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::post('/promotions/valider', [PromotionController::class, 'valider']);
 
@@ -61,6 +61,7 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
     Route::apiResource('articles', ArticleController::class);
 
     
+    Route::post('/logout', [AuthController::class, 'deconnexion']);
     // Paiements et commandes
     Route::post('/paiements/{numCommande}/confirmer', [PaiementController::class, 'confirmerPaiement']);
     Route::put('/commandes/{numCommande}', [CommandeController::class, 'update']); 

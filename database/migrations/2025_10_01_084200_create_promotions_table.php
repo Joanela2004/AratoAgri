@@ -19,7 +19,6 @@ return new class extends Migration
             $table->dateTime('dateFin')->nullable();
             $table->string('codePromo',100)->unique()->nullable();
             $table->string('statutPromotion')->default(true);
-            $table->decimal('montantMinimum', 10, 2)->default(0);
             $table->timestamps();
         });
     }
