@@ -10,10 +10,32 @@ use App\Models\Commande;
 use App\Models\Paiement;
 use App\Models\Produit;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class StripeController extends Controller
 {
+public function MgaToUsd()
+{
+    try {
+        $url = "https://open.er-api.com/v6/latest/MGA";
+        $response = Http::get($url);
 
+        if ($response->failed()) {
+            return null;
+        }
+
+        $data = $response->json();
+
+        if (!isset($data["rates"]["USD"])) {
+            return null;
+        }
+
+        return $data["rates"]["USD"]; // ⚠️ Retourne UNIQUEMENT le chiffre
+    } 
+    catch (\Exception $e) {
+        return null;
+    }
+}
 public function createCheckoutSession(Request $request)
 {
     $request->validate([
@@ -26,19 +48,31 @@ public function createCheckoutSession(Request $request)
     $montantTotalAr    = $request->montantTotal;
     $numModePaiement   = $request->numModePaiement;
 
+    $usdRate = $this->MgaToUsd();
+    if (!$usdRate) {
+        return response()->json([
+            "success" => false,
+            "message" => "Impossible de récupérer le taux MGA → USD."
+        ], 500);
+    }
+
+    $montantUsd = $montantTotalAr * $usdRate;
+
+    $stripeAmount = (int) round($montantUsd * 100);
+
     Stripe::setApiKey(env('STRIPE_SECRET'));
 
     $session = Session::create([
         'payment_method_types' => ['card'],
-    'line_items' => [[
-        'price_data' => [
-            'currency' => 'mga',
-            'product_data' => [
-                'name' => "Commande #{$referenceCommande}",
+        'line_items' => [[
+            'price_data' => [
+                'currency' => 'usd',
+                'product_data' => [
+                    'name' => "Commande #{$referenceCommande}",
+                ],
+                'unit_amount' => $stripeAmount,
             ],
-            'unit_amount' => $montantTotalAr, 
-        ],
-        'quantity' => 1,
+            'quantity' => 1,
         ]],
         'mode' => 'payment',
         'success_url' => env('FRONTEND_URL') . '/success?session_id={CHECKOUT_SESSION_ID}',
@@ -46,15 +80,18 @@ public function createCheckoutSession(Request $request)
         'metadata' => [
             'referenceCommande' => $referenceCommande,
             'montant_ariary'    => $montantTotalAr,
-            'numModePaiement'   => $numModePaiement, // BIEN ENVOYÉ
+            'numModePaiement'   => $numModePaiement,
         ],
     ]);
 
     return response()->json([
         'url' => $session->url,
         'session_id' => $session->id,
+        'taux_mga_usd' => $usdRate,
+        'montant_usd_arrondi' => $stripeAmount,
     ]);
 }
+
 
 public function webhook(Request $request)
 {

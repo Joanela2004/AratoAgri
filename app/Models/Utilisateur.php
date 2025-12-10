@@ -20,6 +20,8 @@ class Utilisateur extends Authenticatable
         'motDePasse',
         'role',
         'image',
+        'code_reinitialisation',
+    'code_reinitialisation_expire_le',
         'email_verification_token',
         'email_verified_at',
     ];

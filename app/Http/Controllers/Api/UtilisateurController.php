@@ -24,7 +24,7 @@ class UtilisateurController extends Controller
         $request->validate([
             'nomUtilisateur' => 'required|string|max:100',
             'email' => 'required|email|unique:utilisateurs,email|email:dns', 
-            'contact' => 'required|string|max:15',
+            'contact' => 'nullable|string|max:15',
             'motDePasse' => 'required|string|min:6',
             'role' => 'required|in:admin,client',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
@@ -77,12 +77,7 @@ class UtilisateurController extends Controller
 
         $data = $request->only(['nomUtilisateur', 'contact']);
 
-        // if ($request->has('email') && $request->email !== $utilisateur->email) {
-        //     $data['email'] = $request->email;
-        //     $data['email_verified_at'] = null; 
-        //     $data['email_verification_token'] = Str::random(60);
-        //     Mail::to($request->email)->send(new VerificationEmail($utilisateur));
-        // }
+      
 
         if ($request->hasFile('image')) {
             if ($utilisateur->image && Storage::disk('public')->exists($utilisateur->image)) {

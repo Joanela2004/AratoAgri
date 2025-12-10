@@ -11,11 +11,12 @@ use App\Models\Livraison;
 use App\Models\LieuLivraison;
 use App\Models\Produit;
 use App\Models\Paiement;
+use App\Models\Promotion;
 use App\Http\Controllers\Api\AuthController; // Pour la fusion panier
 
 class CommandeController extends Controller
 {
-    // === Liste des commandes client ===
+    
     public function indexClient()
     {
         $commandes = Commande::with([
@@ -74,166 +75,158 @@ public function show($numCommande)
 
     return response()->json($commande);
 }
-    public function store(Request $request)
-    {
-        $userId = auth()->id();
-
-        $request->validate([
-            'numModePaiement' => 'nullable|exists:mode_Paiements,numModePaiement',
-            'numLieu'         => 'nullable|exists:lieux_livraison,numLieu',
-            'lieuNom'         => 'nullable|string|max:255',
-            'payerLivraison'  => 'boolean',
-            'sousTotal'       => 'required|numeric|min:0',
-            'fraisLivraison'  => 'required|numeric|min:0',
-            'montantTotal'    => 'required|numeric|min:0',
-            'codePromo'       => 'nullable|string|max:50',
-            'panier'          => 'required|array|min:1',
-            'panier.*.numProduit' => 'required|exists:produits,numProduit',
-            'panier.*.prix'       => 'required|numeric|min:0',
-            'panier.*.poids'      => 'required|numeric|min:0.01',
-            'panier.*.decoupe'    => 'nullable|string',
-        ]);
-       
-        $panier = $request->panier;
-        if (empty($panier)) {
-            $panier = AuthController::recupererPanierFusionne($userId);
-            if (empty($panier)) {
-                return response()->json(['message' => 'Votre panier est vide.'], 422);
-            }
-        }
-
-        // Vérification stock (on regarde, mais on ne touche PAS encore)
-        foreach ($panier as $item) {
-            $produit = Produit::find($item['numProduit']);
-            if ($produit->poids < $item['poids']) {
-                return response()->json([
-                    'message' => "Stock insuffisant pour {$produit->nomProduit}",
-                    'disponible' => $produit->poids . ' kg',
-                    'demandé' => $item['poids'] . ' kg'
-                ], 422);
-            }
-        }
-
-        // Gestion code promo (tu peux garder ton code existant ici)
-        $montantFinal = $request->montantTotal;
-
-        DB::beginTransaction();
-        try {
-            $reference = 'CMD-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-
-
-            $commande = Commande::create([
-                'numUtilisateur'    => $userId,
-                'numModePaiement'   => $request->numModePaiement,
-                'numLieu'           => $request->numLieu,
-                'lieuNom'           => $request->lieuNom,
-                'statut'            => 'en attente',
-                'sousTotal'         => $request->sousTotal,
-                'fraisLivraison'    => $request->fraisLivraison,
-                'montantTotal'      => $montantFinal,
-                'payerLivraison'    => $request->payerLivraison ?? false,
-                'codePromo'         => $request->codePromo ?? null,
-                'dateCommande'      => now(),
-                'referenceCommande' => $reference,
-            ]);
-    
-    Paiement::create([
-    'numCommande'   => $commande->numCommande,
-    'numModePaiement' => $request->numModePaiement,
-    'montantApayer' => $montantFinal,
-    'statut'        => 'en attente',
-    'datePaiement'  => null
-]);
-            foreach ($panier as $item) {
-                DetailCommande::create([
-                    'numCommande'   => $commande->numCommande,
-                    'numProduit'    => $item['numProduit'],
-                    'poids'         => $item['poids'],
-                    'decoupe'       => $item['decoupe'] ?? null,
-                    'prixUnitaire'  => $item['prix'],
-                    'sousTotal'     => $item['prix'] * $item['poids'],
-                ]);
-            }
-           
-
-            $nomLieu = $request->lieuNom;
-            if (!$nomLieu && $request->numLieu) {
-                $nomLieu = LieuLivraison::find($request->numLieu)?->nomLieu ?? 'Lieu inconnu';
-            }
-
-            Livraison::create([
-                'numCommande'     => $commande->numCommande,
-                'lieuLivraison'   => $nomLieu,
-                'fraisLivraison'  => $request->fraisLivraison,
-                'statutLivraison' =>'en cours',
-                'referenceColis'  => 'LV-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT),
-            ]);
-                   
-            // Nettoyer le panier fusionné
-            AuthController::viderPanierFusionne($userId);
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Commande créée avec succès !',
-                'commande' => $commande->load(['detailCommandes.produit', 'livraisons', 'modePaiement', 'lieu'])
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Erreur lors de la création de la commande',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-   public function update(Request $request, $id)
+ public function store(Request $request)
 {
-    $commande = Commande::with('detailCommandes.produit')->findOrFail($id);
-    $ancienStatut = $commande->statut;
+    $userId = auth()->id();
 
     $request->validate([
-        'statut' => 'sometimes|in:en attente,validée,payée,expédiée,annulée,livrée',
-        'payerLivraison' => 'sometimes|boolean',
-        'estConsulte' => 'sometimes|boolean',
+        'numModePaiement' => 'nullable|exists:mode_Paiements,numModePaiement',
+        'numLieu' => 'nullable|exists:lieux_livraison,numLieu',
+        'lieuNom' => 'nullable|string|max:255',
+        'payerLivraison' => 'boolean',
+        'sousTotal' => 'required|numeric|min:0',
+        'fraisLivraison' => 'required|numeric|min:0',
+        'montantTotal' => 'required|numeric|min:0',
+        'codePromo' => 'nullable|string|max:50',
+        'panier' => 'required|array|min:1',
+        'panier.*.numProduit' => 'required|exists:produits,numProduit',
+        'panier.*.prix' => 'required|numeric|min:0',
+        'panier.*.poids' => 'required|numeric|min:0.01',
+        'panier.*.decoupe' => 'nullable|string',
     ]);
 
-    if ($request->has('estConsulte')) {
-        $commande->estConsulte = $request->estConsulte;
+    $panier = $request->panier;
+    if (empty($panier)) {
+        $panier = AuthController::recupererPanierFusionne($userId);
+        if (empty($panier)) {
+            return response()->json(['message' => 'Votre panier est vide.'], 422);
+        }
     }
 
-    if ($request->has('statut')) {
-        $nouveauStatut = $request->statut;
+    // Vérification stock
+    foreach ($panier as $item) {
+        $produit = Produit::find($item['numProduit']);
+        if ($produit->poids < $item['poids']) {
+            return response()->json([
+                'message' => "Stock insuffisant pour {$produit->nomProduit}",
+                'disponible' => $produit->poids . ' kg',
+                'demandé' => $item['poids'] . ' kg'
+            ], 422);
+        }
+    }
 
-        if (in_array($nouveauStatut, ['validée', 'payée']) && !in_array($ancienStatut, ['validée', 'payée'])) {
-            foreach ($commande->detailCommandes as $detail) {
-                Produit::where('numProduit', $detail->numProduit)->decrement('poids', $detail->poids);
-            }
+    $sousTotal = $request->sousTotal;
+    $montantFinal = $sousTotal; 
+    $numPromotion = null;
+    $codePromoUtilise = null;
+
+    $promotionAuto = Promotion::where('automatique', true)
+        ->where('statutPromotion', true)
+        ->where('dateDebut', '<=', now())
+        ->where('dateFin', '>=', now())
+        ->where('montantMinimum', '<=', $sousTotal)
+        ->first();
+
+    if ($promotionAuto) {
+        $reduction = $promotionAuto->typePromotion === 'Pourcentage'
+            ? $sousTotal * ($promotionAuto->valeur / 100)
+            : $promotionAuto->valeur;
+
+        $reduction = round($reduction / 100) * 100; // Arrondi au 100 Ar près
+        $montantFinal = $sousTotal - $reduction;
+        $numPromotion = $promotionAuto->numPromotion;
+    }
+    // 2. Sinon, code promo manuel ?
+    elseif ($request->filled('codePromo')) {
+        $validation = app(PromotionController::class)->valider($request);
+        if ($validation->getStatusCode() !== 200) {
+            return $validation; // Retourne l'erreur du contrôleur
         }
 
-        if ($nouveauStatut === 'annulée' && $ancienStatut !== 'annulée') {
-            foreach ($commande->detailCommandes as $detail) {
-                Produit::where('numProduit', $detail->numProduit)->increment('poids', $detail->poids);
-            }
+        $result = json_decode($validation->getContent(), true);
+        $montantFinal = $result['montantAPayer'];
+        $promotion = Promotion::where('codePromo', $request->codePromo)->firstOrFail();
+        $numPromotion = $promotion->numPromotion;
+        $codePromoUtilise = $request->codePromo;
+
+        // Marquer le code comme utilisé (si tu veux)
+        PromotionUtilisateur::where('numPromotion', $numPromotion)
+            ->where('numUtilisateur', $userId)
+            ->update(['statut' => 'utilisé']);
+    }
+
+    // Montant total final (avec frais de livraison)
+    $montantTotalAvecLivraison = $montantFinal + $request->fraisLivraison;
+
+    DB::beginTransaction();
+    try {
+        $reference = 'CMD-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $commande = Commande::create([
+            'numUtilisateur' => $userId,
+            'numModePaiement' => $request->numModePaiement,
+            'numLieu' => $request->numLieu,
+            'lieuNom' => $request->lieuNom,
+            'statut' => 'en attente',
+            'sousTotal' => $sousTotal,
+            'fraisLivraison' => $request->fraisLivraison,
+            'montantTotal' => $montantTotalAvecLivraison,
+            'payerLivraison' => $request->payerLivraison ?? false,
+            'codePromo' => $codePromoUtilise,
+            'numPromotion' => $numPromotion, // Lien avec la promo
+            'dateCommande' => now(),
+            'referenceCommande' => $reference,
+        ]);
+
+        // Créer les détails
+        foreach ($panier as $item) {
+            DetailCommande::create([
+                'numCommande' => $commande->numCommande,
+                'numProduit' => $item['numProduit'],
+                'poids' => $item['poids'],
+                'decoupe' => $item['decoupe'] ?? null,
+                'prixUnitaire' => $item['prix'],
+                'sousTotal' => $item['prix'] * $item['poids'],
+            ]);
         }
 
-        $commande->statut = $nouveauStatut;
+        // Livraison
+        $nomLieu = $request->lieuNom;
+        if (!$nomLieu && $request->numLieu) {
+            $nomLieu = LieuLivraison::find($request->numLieu)?->nomLieu ?? 'Lieu inconnu';
+        }
+
+        Livraison::create([
+            'numCommande' => $commande->numCommande,
+            'lieuLivraison' => $nomLieu,
+            'fraisLivraison' => $request->fraisLivraison,
+            'statutLivraison' => 'en cours',
+            'referenceColis' => 'LV-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT),
+        ]);
+
+        Paiement::create([
+            'numCommande' => $commande->numCommande,
+            'numModePaiement' => $request->numModePaiement,
+            'montantApayer' => $montantTotalAvecLivraison,
+            'statut' => 'en attente',
+        ]);
+
+        // Vider le panier
+        AuthController::viderPanierFusionne($userId);
+
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Commande créée avec succès !',
+            'commande' => $commande->load(['detailCommandes.produit', 'livraisons', 'modePaiement', 'lieu', 'promotion'])
+        ], 201);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Erreur création commande', ['error' => $e->getMessage()]);
+        return response()->json(['message' => 'Erreur lors de la création'], 500);
     }
-
-    if ($request->has('payerLivraison')) {
-        $commande->payerLivraison = $request->payerLivraison;
-    }
-
-    $commande->save();
-
-    return response()->json([
-        'message' => 'Commande mise à jour',
-        'commande' => $commande->load(['detailCommandes.produit', 'livraisons'])
-    ]);
 }
-
-    // === Annulation par le client (optionnel) ===
     public function destroy($id)
     {
         $commande = Commande::where('numUtilisateur', auth()->id())
@@ -263,7 +256,6 @@ public function show($numCommande)
             'datePaiement' => now()
         ]);
 
-        // Déduire le stock + changer statut commande
         $commande = $paiement->commande;
         $commande->update(['statut' => 'payée']);
 
@@ -274,5 +266,28 @@ public function show($numCommande)
     });
 
     return response()->json(['message' => 'Paiement confirmé – Stock déduit']);
+}
+public function updateModePaiement(Request $request, $referenceCommande)
+{
+    $request->validate([
+        'numModePaiement' => 'required|exists:mode_Paiements,numModePaiement'
+    ]);
+
+    $commande = Commande::where('referenceCommande', $referenceCommande)
+                        ->where('numUtilisateur', auth()->id())
+                        ->firstOrFail();
+    DB::transaction(function () use ($commande, $request) {
+        $commande->update([
+            'numModePaiement' => $request->numModePaiement
+        ]);
+
+                Paiement::where('numCommande', $commande->numCommande)
+                ->update(['numModePaiement' => $request->numModePaiement]);
+    });
+
+    return response()->json([
+        'message' => 'Mode de paiement mis à jour avec succès',
+        'mode_paiement' => $commande->modePaiement?->nomModePaiement
+    ]);
 }
 }

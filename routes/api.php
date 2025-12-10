@@ -14,98 +14,126 @@ use App\Http\Controllers\Api\{
     DetailCommandeController,
     FraisLivraisonController,
     AuthController,
+    MvolaController,
     StripeController,
     LieuLivraisonController,
     DecoupeController,
     DashboardController
 };
 
-// ==================== ROUTES PUBLIQUES (SANS AUTH) ====================
+// ====================== ROUTES PUBLIQUES (SANS AUTH) ======================
+
+// Données de référence
 Route::get('/decoupes', [DecoupeController::class, 'index']);
 Route::get('/frais_livraisons', [FraisLivraisonController::class, 'index']);
 Route::get('/lieux_livraison', [LieuLivraisonController::class, 'index']);
 Route::get('/mode_paiements/actifs', [ModePaiementController::class, 'actifs']);
+
+// Contenu public
 Route::get('articles', [ArticleController::class, 'index']);
 Route::get('articles/{id}', [ArticleController::class, 'show']);
+
+// Produits et catégories
 Route::get('/produits', [ProduitController::class, 'index']);
 Route::get('/produits/{id}', [ProduitController::class, 'show']);
 Route::get('/categories', [CategorieController::class, 'index']);
 
-// Auth publiques
+// ==================== AUTHENTIFICATION PUBLIQUE ====================
+
+// Inscription / Connexion / Vérification email
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail'])->name('verify.email');
+Route::get('/verify-email/{token}', [AuthController::class, 'verifierEmail'])->name('verify.email');
 
-// Stripe
+// Mot de passe oublié (code à 6 chiffres)
+Route::post('/mot-de-passe-oublie', [AuthController::class, 'motDePasseOublie']);
+Route::post('/reinitialiser-mot-de-passe', [AuthController::class, 'reinitialiserMotDePasse']);
+
+// Paiements externes
 Route::post('/paiement/stripe/create-session', [StripeController::class, 'createCheckoutSession']);
-Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
+Route::post('/stripe/webhook', [StripeController::class, 'webhook']); // Attention : à protéger en prod
+Route::post('/promotions/auto', [PromotionController::class, 'appliquerAuto']);
 
-// ==================== ROUTES AUTHENTIFIÉES ====================
+Route::get('/paiement/mvola/create-token', [MvolaController::class, 'generateToken']);
+Route::post('/paiement/mvola/pay', [MvolaController::class, 'pay']);
+
+// ====================== ROUTES PROTÉGÉES (UTILISATEUR CONNECTÉ) ======================
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'deconnexion']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
-    Route::post('/promotions/valider', [PromotionController::class, 'valider']);
 
+    // Profil utilisateur
     Route::get('utilisateurs/{id}', [UtilisateurController::class, 'show']);
     Route::put('utilisateurs/{id}', [UtilisateurController::class, 'update']);
 
-    Route::get('mesCommandes/{numCommande}/livraison', [LivraisonController::class, 'showByCommandeClient']);
-    Route::get('/mesCommandes', [CommandeController::class, 'indexClient']);
-    Route::get('/mesCommandes/{id}', [CommandeController::class, 'showClient']);
-    Route::post('/commandes', [CommandeController::class, 'store']); 
+    // Commandes client
+    Route::get('/mes-commandes', [CommandeController::class, 'indexClient']);
+    Route::get('/mes-commandes/{id}', [CommandeController::class, 'showClient']);
+    Route::post('/commandes', [CommandeController::class, 'store']);
+    Route::patch('/commandes/{referenceCommande}/mode-paiement', [CommandeController::class, 'updateModePaiement']);
+
+    // Promotions
+    Route::post('/promotions/valider', [PromotionController::class, 'valider']);
+
+    // Livraison client
+    Route::get('mes-commandes/{numCommande}/livraison', [LivraisonController::class, 'showByCommandeClient']);
 });
 
-// ==================== ROUTES ADMIN ====================
+// ====================== ROUTES ADMIN (auth + IsAdmin) ======================
 Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
-    Route::apiResource('articles', ArticleController::class);
 
-    
+    // Déconnexion admin (déjà dans le groupe auth, mais on garde pour clarté)
     Route::post('/logout', [AuthController::class, 'deconnexion']);
-    // Paiements et commandes
+
+    // Articles
+    Route::apiResource('articles', ArticleController::class)->except(['index', 'show']);
+
+    // Utilisateurs
+    Route::get('utilisateurs', [UtilisateurController::class, 'index']);
+
+    // Commandes & Paiements admin
     Route::post('/paiements/{numCommande}/confirmer', [PaiementController::class, 'confirmerPaiement']);
-    Route::put('/commandes/{numCommande}', [CommandeController::class, 'update']); 
-    Route::get('utilisateurs', [UtilisateurController::class, 'index']); 
     Route::apiResource('paiements', PaiementController::class);
-    Route::apiResource('commandes', CommandeController::class)->except(['store','showClient','indexClient']);
+    Route::put('/commandes/{numCommande}', [CommandeController::class, 'update']);
+    Route::apiResource('commandes', CommandeController::class)
+        ->except(['store', 'showClient', 'indexClient']);
 
     // Livraisons
-    Route::put('livraisons/{id}', [LivraisonController::class, 'update']);
-    Route::get('livraisons/{id}', [LivraisonController::class, 'show']);
-    Route::get('livraisons', [LivraisonController::class, 'index']);
+    Route::apiResource('livraisons', LivraisonController::class);
 
     // Modes de paiement
     Route::apiResource('mode_paiements', ModePaiementController::class)->except(['actifs']);
 
     // Promotions
     Route::apiResource('promotions', PromotionController::class);
-
     Route::post('/send-promo-to-client', [PromotionController::class, 'sendPromoToClient']);
-     Route::post('promotions/{id}/restore', [PromotionController::class, 'restore']);
+    Route::post('promotions/{id}/restore', [PromotionController::class, 'restore']);
     Route::get('/promotions/deja-envoye/{numPromotion}/{numUtilisateur}', [PromotionController::class, 'checkIfSent']);
 
-    // PRODUITS avec soft delete + restore
-    Route::apiResource('produits', ProduitController::class)->except(['index','show']);
+    // Produits + restore
+    Route::apiResource('produits', ProduitController::class)->except(['index', 'show']);
     Route::post('produits/{id}/restore', [ProduitController::class, 'restore']);
-    
-    // CATEGORIES avec soft delete + restore
-    Route::apiResource('categories', CategorieController::class)->except(['index','show']);
+
+    // Catégories + restore
+    Route::apiResource('categories', CategorieController::class)->except(['index', 'show']);
     Route::post('categories/{id}/restore', [CategorieController::class, 'restore']);
-    
-    // DECOUPES avec soft delete + restore
-    Route::apiResource('decoupes', DecoupeController::class)->except(['index','show']);
+
+    // Découpes + restore
+    Route::apiResource('decoupes', DecoupeController::class)->except(['index', 'show']);
     Route::post('decoupes/{id}/restore', [DecoupeController::class, 'restore']);
 
-    // LIEUX DE LIVRAISON avec soft delete + restore
+    // Lieux de livraison + restore
     Route::apiResource('lieux_livraison', LieuLivraisonController::class)->except(['index']);
     Route::post('lieux_livraison/{id}/restore', [LieuLivraisonController::class, 'restore']);
 
-    // FRAIS DE LIVRAISON avec soft delete + restore
+    // Frais de livraison
     Route::post('/frais_livraisons/regenerer', [FraisLivraisonController::class, 'regenerer']);
     Route::apiResource('frais_livraisons', FraisLivraisonController::class)->except(['index']);
     Route::post('frais_livraisons/{id}/restore', [FraisLivraisonController::class, 'restore']);
-    
-    Route::get('dashboard/getkpis', [DashboardController::class, 'getKpis']);
+
+    // Dashboard
+    Route::get('/dashboard/getkpis', [DashboardController::class, 'getKpis']);
     Route::get('/dashboard/kpis', [DashboardController::class, 'kpis']);
     Route::get('/dashboard/sales-over-time', [DashboardController::class, 'salesOverTime']);
     Route::get('/dashboard/sales-by-category', [DashboardController::class, 'salesByCategory']);

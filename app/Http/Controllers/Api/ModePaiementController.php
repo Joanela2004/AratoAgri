@@ -30,6 +30,7 @@ class ModePaiementController extends Controller
             'nomModePaiement' => 'required|string|max:100',
             'actif' => 'sometimes',
             'config' => 'nullable|string',
+            'typePaiement'    => 'nullable|string|max:50',
             'image' => 'nullable|image|max:2048',
         ]);
 
@@ -46,7 +47,10 @@ class ModePaiementController extends Controller
              $data['config'] = null;
         }
 
-        
+        if (array_key_exists('typePaiement', $validated)) {
+            $data['typePaiement'] = $validated['typePaiement'];
+        }
+
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('modePaiements', 'public');
             $data['image'] = $path;
@@ -63,34 +67,34 @@ class ModePaiementController extends Controller
         if (!$mode) {
             return response()->json(['message' => 'Mode de paiement non trouvé'], 404);
         }
-    $validated = $request->validate([
-            'nomModePaiement' => 'sometimes|string|max:100',
-            'actif' => 'sometimes',
-            'config' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
+
+        $validated = $request->validate([
+            'nomModePaiement' => 'sometimes|required|string|max:100',
+            'typePaiement'    => 'nullable|string|max:50',
+            'actif'           => 'sometimes|boolean',
+            'config'          => 'nullable|string',
+            'image'           => 'nullable|image|max:2048',
         ]);
 
         $data = [];
 
-        if (isset($validated['nomModePaiement'])) {
+        if ($request->has('nomModePaiement')) {
             $data['nomModePaiement'] = $validated['nomModePaiement'];
         }
-
-        if (isset($validated['actif'])) {
-                   $data['actif'] = $validated['actif'] === 'true' || $validated['actif'] === '1' || $validated['actif'] === true;
+        if ($request->has('typePaiement')) {                    // ← Important !
+            $data['typePaiement'] = $validated['typePaiement'];
         }
-
-               if (array_key_exists('config', $validated)) {
+        if ($request->has('actif')) {
+            $data['actif'] = $validated['actif'];
+        }
+        if ($request->filled('config') || $request->has('config')) {
             $data['config'] = $validated['config'] ? json_decode($validated['config'], true) : null;
         }
-
         if ($request->hasFile('image')) {
-           
             if ($mode->image) {
                 Storage::disk('public')->delete($mode->image);
             }
-            $path = $request->file('image')->store('modePaiements', 'public');
-            $data['image'] = $path;
+            $data['image'] = $request->file('image')->store('modePaiements', 'public');
         }
 
         $mode->update($data);

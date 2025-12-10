@@ -13,163 +13,231 @@ use Carbon\Carbon;
 
 class PromotionController extends Controller
 {
-    /**
-     * Retourne toutes les promotions avec un statut automatique
-     */
+    // Liste toutes les promotions avec le champ "statut" calculé automatiquement
     public function index()
     {
-        $now = now();
-
-        $promos = Promotion::all()->map(function ($p) use ($now) {
-            $p->autoStatut = $this->computeStatus($p, $now);
-            return $p;
-        });
-
-        return response()->json($promos, 200);
+        return response()->json(Promotion::all());
     }
 
-    /**
-     * Déterminer automatiquement le statut d’une promotion
-     */
-    private function computeStatus($promotion, $now)
-    {
-        if ($now->lt($promotion->dateDebut)) {
-            return "en_attente";
-        }
-        if ($now->gt($promotion->dateFin)) {
-            return "expiree";
-        }
-        return "active";
-    }
-
+    // Création d'une nouvelle promotion
     public function store(Request $request)
     {
         $request->validate([
-            'nomPromotion' => 'required|string|max:100',
-            'typePromotion' => 'required|string|in:Pourcentage,Montant fixe',
-            'codePromo' => 'required|string|max:50|unique:promotions,codePromo',
-            'valeur' => 'required|numeric|min:0',
-            'dateDebut' => 'required|date',
-            'dateFin' => 'required|date|after_or_equal:dateDebut',
-            'montantMinimum' => 'nullable|numeric|min:0',
+            'nomPromotion'    => 'required|string|max:100',
+            'typePromotion'   => 'required|in:Pourcentage,Montant fixe',
+            'valeur'          => 'required|numeric|min:0.01',
+            'automatique'     => 'required|boolean',
+            'dateDebut'       => 'required|date',
+            'dateFin'         => 'required|date|after_or_equal:dateDebut',
+            'montantMinimum'  => 'nullable|numeric|min:0',
+            'codePromo'       => 'nullable|string|max:50|unique:promotions,codePromo',
+            'statutPromotion' => 'sometimes|boolean',
         ]);
 
-       $data = $request->all();
-    $data['montantMinimum'] = $request->filled('montantMinimum') ? $request->montantMinimum : 0;
+        $data = $request->only([
+            'nomPromotion', 'typePromotion', 'valeur', 'dateDebut', 'dateFin',
+            'automatique', 'montantMinimum', 'codePromo', 'statutPromotion'
+        ]);
 
-    $promotion = Promotion::create($data);
-    $promotion->autoStatut = $this->computeStatus($promotion, now());
+        if ($data['automatique']) {
+            $data['codePromo'] = null;
+        } elseif (empty($data['codePromo'])) {
+            return response()->json(['message' => 'Le code promo est obligatoire pour une promotion manuelle'], 422);
+        }
 
-    return response()->json($promotion, 201);
+        $data['montantMinimum']   = $data['montantMinimum'] ?? 0;
+        $data['statutPromotion']  = $data['statutPromotion'] ?? true;
+
+        $promotion = Promotion::create($data);
+
+        return response()->json($promotion, 201);
     }
 
-    public function show(string $id)
+    // Mise à jour d'une promotion
+    public function update(Request $request, string $id)
     {
         $promotion = Promotion::findOrFail($id);
 
-        $promotion->autoStatut = $this->computeStatus($promotion, now());
+        $request->validate([
+            'nomPromotion'    => 'sometimes|string|max:100',
+            'typePromotion'   => 'sometimes|in:Pourcentage,Montant fixe',
+            'valeur'          => 'sometimes|numeric|min:0.01',
+            'automatique'     => 'sometimes|boolean',
+            'dateDebut'       => 'sometimes|date',
+            'dateFin'         => 'sometimes|date|after_or_equal:dateDebut',
+            'montantMinimum'  => 'nullable|numeric|min:0',
+            'codePromo'       => 'nullable|string|max:50|unique:promotions,codePromo,' . $id . ',numPromotion',
+            'statutPromotion' => 'sometimes|boolean',
+        ]);
 
-        return response()->json($promotion, 200);
+        $data = $request->only([
+            'nomPromotion', 'typePromotion', 'valeur', 'dateDebut', 'dateFin',
+            'automatique', 'montantMinimum', 'codePromo', 'statutPromotion'
+        ]);
+
+        if (isset($data['automatique'])) {
+            if ($data['automatique']) {
+                $data['codePromo'] = null;
+            } else {
+                $data['codePromo'] = $data['codePromo'] ?? $promotion->codePromo;
+                if (empty($data['codePromo'])) {
+                    return response()->json(['message' => 'Le code promo est obligatoire'], 422);
+                }
+            }
+        }
+
+        $data['montantMinimum'] = $data['montantMinimum'] ?? $promotion->montantMinimum;
+        $promotion->update($data);
+
+        return response()->json($promotion);
     }
 
-   public function update(Request $request, string $id)
-{
-    $promotion = Promotion::findOrFail($id);
+    // Validation d'un code promo (panier)
+    public function valider(Request $request)
+    {
+        $request->validate([
+            'codePromo'       => 'required|string',
+            'numUtilisateur' => 'required|integer',
+            'montantPanier'   => 'required|numeric|min:0',
+        ]);
 
-    $request->validate([
-        'nomPromotion' => 'sometimes|string|max:100',
-        'typePromotion' => 'sometimes|string|in:Pourcentage,Montant fixe',
-        'codePromo' => 'nullable|string|max:50|unique:promotions,codePromo,' . $id . ',numPromotion',
-        'valeur' => 'sometimes|numeric|min:0',
-        'dateDebut' => 'sometimes|date',
-        'dateFin' => 'sometimes|date|after_or_equal:dateDebut',
-        'montantMinimum' => 'nullable|numeric|min:0',
-    ]);
+        $promotion = Promotion::where('codePromo', $request->codePromo)->first();
 
-    $data = $request->all();
-    $data['montantMinimum'] = $request->filled('montantMinimum') ? $request->montantMinimum : 0;
+        if (!$promotion || $promotion->statut !== 'active') {
+            return response()->json(['message' => 'Code promo invalide ou inactif'], 400);
+        }
 
-    $promotion->update($data);
-    $promotion->autoStatut = $this->computeStatus($promotion, now());
+        $promoUser = PromotionUtilisateur::where('numPromotion', $promotion->numPromotion)
+            ->where('numUtilisateur', $request->numUtilisateur)
+            ->first();
 
-    return response()->json($promotion, 200);
-}
+        if (!$promoUser || $promoUser->statut !== 'valide') {
+            return response()->json(['message' => 'Ce code promo ne vous a pas été attribué ou a déjà été utilisé'], 400);
+        }
+
+        if ($promotion->montantMinimum > $request->montantPanier) {
+            return response()->json([
+                'message'             => 'Montant minimum non atteint',
+                'montantMinimumRequis'=> $promotion->montantMinimum,
+                'manque'              => $promotion->montantMinimum - $request->montantPanier,
+            ], 400);
+        }
+
+        $reduction = $promotion->typePromotion === 'Pourcentage'
+            ? $request->montantPanier * ($promotion->valeur / 100)
+            : $promotion->valeur;
+
+        $reduction = round($reduction / 100) * 100;
+
+        return response()->json([
+            'message'       => 'Code promo valide',
+            'valeur'        => $promotion->valeur,
+            'typePromotion' => $promotion->typePromotion,
+            'reductionEnAr' => $reduction,
+            'montantAPayer' => $request->montantPanier - $reduction,
+        ]);
+    }
+
+    // Application automatique d'une promotion
+    public function appliquerAuto(Request $request)
+    {
+        $montantPanier = $request->input('montantPanier');
+        $now = Carbon::now();
+
+        $promo = Promotion::where('automatique', true)
+            ->where('statutPromotion', true)
+            ->where('dateDebut', '<=', $now)
+            ->where('dateFin', '>=', $now)
+            ->where('montantMinimum', '<=', $montantPanier)
+            ->first();
+
+        if (!$promo) {
+            return response()->json(['message' => 'Aucune promotion automatique applicable'], 404);
+        }
+
+        $reduction = $promo->typePromotion === 'Pourcentage'
+            ? $montantPanier * ($promo->valeur / 100)
+            : $promo->valeur;
+
+        $reduction = round($reduction / 100) * 100;
+
+        return response()->json([
+            'message'       => 'Promotion automatique appliquée',
+            'reduction'     => $reduction,
+            'montantAPayer' => $montantPanier - $reduction,
+            'promotion'     => $promo
+        ]);
+    }
+
+    // Suppression
     public function destroy(string $id)
     {
         $promotion = Promotion::findOrFail($id);
         $promotion->delete();
-
         return response()->json(null, 204);
     }
 
+    // Envoi manuel d'une promo à un client
+    public function sendPromoToClient(Request $request)
+    {
+        $request->validate([
+            'numUtilisateur' => 'required|exists:utilisateurs,numUtilisateur',
+            'numPromotion'   => 'required|exists:promotions,numPromotion',
+            'nomClient'      => 'required|string',
+        ]);
 
-    /**
-     * ENVOI DU CODE PROMO À UN CLIENT
-     * + Empêche l’envoi si la promo est expirée ou pas commencée
-     */
-public function sendPromoToClient(Request $request)
-{
-    $request->validate([
-        'numUtilisateur' => 'required|exists:utilisateurs,numUtilisateur',
-        'numPromotion'   => 'required|exists:promotions,numPromotion',
-        'nomClient'      => 'required|string',
-       
-    ]);
+        $promotion = Promotion::findOrFail($request->numPromotion);
+        $user = Utilisateur::findOrFail($request->numUtilisateur);
+        $now = Carbon::now();
 
-    $promotion = Promotion::findOrFail($request->numPromotion);
-    $user      = Utilisateur::findOrFail($request->numUtilisateur);
-    $now       = now();
+        if ($promotion->automatique) {
+            return response()->json(['success' => false, 'message' => "Impossible d'envoyer un code : cette promotion est automatique."], 400);
+        }
 
-    // Vérification du statut
-    if ($now->lt($promotion->dateDebut)) {
-        return response()->json(['success' => false, 'message' => "La promotion n'a pas encore commencé"], 400);
+        if (!$promotion->codePromo) {
+            return response()->json(['success' => false, 'message' => "Aucun code promo n'est défini pour cette promotion."], 400);
+        }
+
+        if ($now->lt($promotion->dateDebut)) {
+            return response()->json(['success' => false, 'message' => "La promotion n'a pas encore commencé"], 400);
+        }
+
+        if ($now->gt($promotion->dateFin)) {
+            return response()->json(['success' => false, 'message' => "La promotion est expirée"], 400);
+        }
+
+        $dejaEnvoye = PromotionUtilisateur::where('numPromotion', $promotion->numPromotion)
+            ->where('numUtilisateur', $user->numUtilisateur)
+            ->exists();
+
+        if ($dejaEnvoye) {
+            return response()->json(['success' => false, 'message' => 'Promotion déjà envoyée à ce client'], 409);
+        }
+
+        PromotionUtilisateur::create([
+            'numPromotion'    => $promotion->numPromotion,
+            'numUtilisateur'  => $user->numUtilisateur,
+            'code_envoye'     => $promotion->codePromo,
+            'date_expiration' => $promotion->dateFin,
+            'statut'          => 'valide',
+        ]);
+
+        try {
+            Mail::to($user->email)->send(new PromoMail([
+                'nomClient'     => $request->nomClient,
+                'codePromo'     => $promotion->codePromo,
+                'valeur'        => $promotion->valeur,
+                'type'          => $promotion->typePromotion,
+                'dateFin'       => $promotion->dateFin,
+                'nomPromotion'  => $promotion->nomPromotion,
+            ]));
+        } catch (\Exception $e) {
+            \Log::error('Échec envoi mail promo', ['error' => $e->getMessage()]);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Code promo envoyé avec succès !']);
     }
-    if ($now->gt($promotion->dateFin)) {
-        return response()->json(['success' => false, 'message' => "La promotion est expirée"], 400);
-    }
 
-    // Déjà envoyé ?
-    $dejaEnvoye = PromotionUtilisateur::where('numPromotion', $promotion->numPromotion)
-        ->where('numUtilisateur', $user->numUtilisateur)
-        ->exists();
-
-    if ($dejaEnvoye) {
-        return response()->json(['success' => false, 'message' => 'Promotion déjà envoyée à ce client'], 409);
-    }
-
-    // Enregistrement de l'envoi
-    PromotionUtilisateur::create([
-        'numPromotion'    => $promotion->numPromotion,
-        'numUtilisateur'  => $user->numUtilisateur,
-        'code_envoye'     => $promotion->codePromo,
-        'date_expiration' => $promotion->dateFin,
-        'statut'          => 'valide',
-    ]);
-
-    try {
-        Mail::to($user->email)->send(new PromoMail([
-            'nomClient'     => $request->nomClient,
-            'codePromo'     => $promotion->codePromo,
-            'valeur'        => $promotion->valeur,
-            'type'          => $promotion->typePromotion,
-            'dateFin'       => $promotion->dateFin,
-            'nomPromotion'  => $promotion->nomPromotion,
-        ]));
-    } catch (\Exception $e) {
-        \Log::error('Échec envoi mail promo', ['error' => $e->getMessage()]);
-        // On ne bloque pas l'envoi même si le mail échoue
-    }
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Code promo envoyé avec succès !'
-    ]);
-}
-
-
-    /**
-     * Vérifier si une promotion a déjà été envoyée à un utilisateur
-     */
     public function checkIfSent($numPromotion, $numUtilisateur)
     {
         $existe = PromotionUtilisateur::where('numPromotion', $numPromotion)
@@ -179,79 +247,13 @@ public function sendPromoToClient(Request $request)
         return response()->json(['sent' => $existe]);
     }
 
-
-public function valider(Request $request)
-{
-    $request->validate([
-        'codePromo'      => 'required|string',
-        'numUtilisateur' => 'required|integer',
-        'montantPanier'  => 'required|numeric|min:0', // Le montant total du panier du client
-    ]);
-
-    $promotion = Promotion::where('codePromo', $request->codePromo)->first();
-
-    if (!$promotion) {
-        return response()->json(['message' => 'Code promo invalide'], 400);
-    }
-
-    $now = now();
-
-    // Vérification des dates
-    if ($now->lt($promotion->dateDebut)) {
-        return response()->json(['message' => 'Cette promotion n\'a pas encore commencé'], 400);
-    }
-    if ($now->gt($promotion->dateFin)) {
-        return response()->json(['message' => 'Code promo expiré'], 400);
-    }
-
-    // Vérification si le code a été envoyé à cet utilisateur
-    $promoUser = PromotionUtilisateur::where('numPromotion', $promotion->numPromotion)
-        ->where('numUtilisateur', $request->numUtilisateur)
-        ->first();
-
-    if (!$promoUser) {
-        return response()->json(['message' => 'Ce code promo ne vous a pas été attribué'], 400);
-    }
-
-    if ($promoUser->statut !== 'valide') {
-        return response()->json(['message' => 'Code promo déjà utilisé ou invalide'], 400);
-    }
-
-    // Vérification du montant minimum
-    $montantPanier = $request->montantPanier;
-    $montantMinimum = $promotion->montantMinimum ?? 0;
-
-    if ($montantMinimum > 0 && $montantPanier < $montantMinimum) {
-        $manque = $montantMinimum - $montantPanier;
-        return response()->json([
-            'message' => "Montant minimum non atteint",
-            'montantMinimumRequis' => $montantMinimum,
-            'manque' => $manque,
-            ], 400);
-    }
-
-    // Calcul de la réduction en Ar
-    $reductionEnAr = $promotion->typePromotion === 'Pourcentage'
-        ? ($montantPanier * $promotion->valeur) / 100
-        : $promotion->valeur;
-
-    // Arrondi propre (comme à Madagascar
-    $reductionEnAr = round($reductionEnAr / 100) * 100; // arrondi au 100 Ar près
-
-    return response()->json([
-        'message'       => 'Code promo valide',
-        'valeur'        => $promotion->valeur,
-        'typePromotion' => $promotion->typePromotion,
-        'reductionEnAr' => $reductionEnAr,           // Le vrai montant déduit
-        'montantAPayer' => $montantPanier - $reductionEnAr,
-    ], 200);
-}
-
     public function restore($id)
     {
         $promotion = Promotion::withTrashed()->find($id);
 
-        if (!$promotion) return response()->json(['message' => 'Promotion non trouvée'], 404);
+        if (!$promotion) {
+            return response()->json(['message' => 'Promotion non trouvée'], 404);
+        }
 
         $promotion->restore();
 

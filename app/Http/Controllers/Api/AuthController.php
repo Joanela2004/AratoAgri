@@ -10,13 +10,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Mail\VerificationEmail;
-
+use App\Mail\ResetPasswordCodeMail;
 class AuthController extends Controller
 {
-    /**
-     * Inscription d'un nouvel utilisateur
-     * Crée un compte, envoie un email de vérification, et stocke une image si fournie
-     */
+    
     public function register(Request $request)
     {
         // Validation des données
@@ -208,5 +205,74 @@ class AuthController extends Controller
         $user->tokens()->delete();
 
         return response()->json(['message' => 'Mot de passe mis à jour. Reconnectez-vous.'], 200);
+    }
+        /**
+     * Mot de passe oublié → envoi d'un code à 6 chiffres par email
+     */
+    public function motDePasseOublie(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:utilisateurs,email'
+        ]);
+
+        $user = Utilisateur::where('email', $request->email)->first();
+
+        // Générer un code à 6 chiffres
+        $code = sprintf("%06d", mt_rand(0, 999999));
+
+        $user->code_reinitialisation = $code;
+        $user->code_reinitialisation_expire_le = now()->addMinutes(10);
+        $user->save();
+
+        try {
+            Mail::to($user->email)->send(new ResetPasswordCodeMail($code));
+        } catch (\Exception $e) {
+            \Log::error("Erreur envoi code réinitialisation: " . $e->getMessage());
+            return response()->json(['message' => 'Erreur lors de l\'envoi du code'], 500);
+        }
+
+        return response()->json([
+            'message' => 'Code de réinitialisation envoyé avec succès',
+            'email'   => $user->email
+        ]);
+    }
+
+   
+    public function reinitialiserMotDePasse(Request $request)
+    {
+        $request->validate([
+            'email'    => 'required|email|exists:utilisateurs,email',
+            'code'     => 'required|digits:6',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $user = Utilisateur::where('email', $request->email)->first();
+
+        // Vérification du code
+        if ($user->code_reinitialisation !== $request->code) {
+            return response()->json(['message' => 'Code de vérification incorrect'], 400);
+        }
+
+        // Vérification de l'expiration
+        if (now()->greaterThan($user->code_reinitialisation_expire_le)) {
+            $user->code_reinitialisation = null;
+            $user->code_reinitialisation_expire_le = null;
+            $user->save();
+
+            return response()->json(['message' => 'Ce code a expiré. Veuillez refaire une demande.'], 400);
+        }
+
+        // Tout est OK → on change le mot de passe
+        $user->motDePasse = Hash::make($request->password);
+        $user->code_reinitialisation = null;
+        $user->code_reinitialisation_expire_le = null;
+        $user->save();
+
+        // On révoque tous les tokens existants (sécurité)
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Votre mot de passe a été réinitialisé avec succès ! Vous pouvez vous connecter.'
+        ]);
     }
 }

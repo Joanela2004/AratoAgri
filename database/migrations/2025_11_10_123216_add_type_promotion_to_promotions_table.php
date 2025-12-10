@@ -6,23 +6,33 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('promotions', function (Blueprint $table) {
-            $table->string('typePromotion', 50)->default('Pourcentage')->after('valeur');
+            
+            if (!Schema::hasColumn('promotions', 'typePromotion')) {
+                $table->enum('typePromotion', ['Montant', 'Pourcentage'])
+                      ->default('Pourcentage')
+                      ->after('valeur');
+            }
+
+            if (Schema::hasColumn('promotions', 'valeur')) {
+                $table->decimal('valeur', 10, 2)->change();
+            }
+
+            if (Schema::hasColumn('promotions', 'statutPromotion')) {
+                $table->boolean('statutPromotion')->default(true)->change();
+            }
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('promotions', function (Blueprint $table) {
-            //
+          
+            if (Schema::hasColumn('promotions', 'typePromotion')) {
+                $table->dropColumn('typePromotion');
+            }
         });
     }
 };

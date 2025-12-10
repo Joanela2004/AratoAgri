@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Carbon\Carbon;
 
 class Promotion extends Model
 {
@@ -12,10 +13,12 @@ class Promotion extends Model
 
     protected $dates = ['deleted_at'];
     protected $primaryKey = 'numPromotion';
-    protected $fillable = ['nomPromotion', 'valeur', 'typePromotion', 'dateDebut', 'dateFin', 'codePromo', 'statutPromotion', 'montantMinimum','numProduit'];
+    protected $fillable = ['nomPromotion', 'automatique','valeur', 'typePromotion', 'dateDebut', 'dateFin', 'codePromo', 'statutPromotion', 'montantMinimum','numProduit'];
     protected $casts = [
-        'dateDebut' => 'date',
-        'dateFin'   => 'date',
+        'dateDebut' => 'datetime',
+        'dateFin'   => 'datetime',
+        'statutPromotion'   => 'boolean',   
+        'automatique'       => 'boolean',
 
     ];
     public function produits()
@@ -32,5 +35,24 @@ public function utilisateurs()
                 ->withPivot('code_envoye', 'date_expiration', 'statut')
                 ->withTimestamps();
 }
+public function getStatutAttribute(): string
+    {
+        if (!$this->statutPromotion) {
+            return 'inactive';
+        }
+
+        $now = Carbon::now();
+
+        if ($this->dateDebut && $now->lt($this->dateDebut)) {
+            return 'en_attente';
+        }
+
+        if ($this->dateFin && $now->gt($this->dateFin)) {
+            return 'expirée';
+        }
+
+        return 'active';
+    }
+
 
 }

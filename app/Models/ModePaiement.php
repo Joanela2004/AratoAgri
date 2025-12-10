@@ -15,6 +15,7 @@ class ModePaiement extends Model
         'actif',
         'config',
         'image',
+        'typePaiement'
     ];
 
     
