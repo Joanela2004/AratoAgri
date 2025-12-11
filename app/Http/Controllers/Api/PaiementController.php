@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Paiement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-
+use \App\Models\Commande;
 class PaiementController extends Controller
 {
    public function index()
@@ -71,4 +71,23 @@ class PaiementController extends Controller
         $paiement->delete();
         return response()->json(['message' => 'Paiement supprimé']);
     }
+public function getPaiementByCommande($referenceCommande)
+{
+     $commande = Commande::where('referenceCommande', $referenceCommande)->first();
+
+    if (!$commande) {
+        return response()->json(['message' => 'Commande introuvable'], 404);
+    }
+
+     $paiement = Paiement::where('numCommande', $commande->numCommande)->first();
+
+    if (!$paiement) {
+        return response()->json(['message' => 'Aucun paiement trouvé'], 404);
+    }
+
+    return response()->json($paiement, 200);
 }
+
+
+}
+

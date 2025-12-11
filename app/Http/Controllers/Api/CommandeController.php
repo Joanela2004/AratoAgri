@@ -83,6 +83,8 @@ public function show($numCommande)
         'numModePaiement' => 'nullable|exists:mode_Paiements,numModePaiement',
         'numLieu' => 'nullable|exists:lieux_livraison,numLieu',
         'lieuNom' => 'nullable|string|max:255',
+        
+            'dateLivraisonSouhaitee' => 'required|date|after_or_equal:today',
         'payerLivraison' => 'boolean',
         'sousTotal' => 'required|numeric|min:0',
         'fraisLivraison' => 'required|numeric|min:0',
@@ -165,6 +167,8 @@ public function show($numCommande)
         $commande = Commande::create([
             'numUtilisateur' => $userId,
             'numModePaiement' => $request->numModePaiement,
+            
+                'dateLivraisonSouhaitee' => $request->dateLivraisonSouhaitee, 
             'numLieu' => $request->numLieu,
             'lieuNom' => $request->lieuNom,
             'statut' => 'en attente',
@@ -173,7 +177,7 @@ public function show($numCommande)
             'montantTotal' => $montantTotalAvecLivraison,
             'payerLivraison' => $request->payerLivraison ?? false,
             'codePromo' => $codePromoUtilise,
-            'numPromotion' => $numPromotion, // Lien avec la promo
+            'numPromotion' => $numPromotion, 
             'dateCommande' => now(),
             'referenceCommande' => $reference,
         ]);
@@ -202,6 +206,7 @@ public function show($numCommande)
             'fraisLivraison' => $request->fraisLivraison,
             'statutLivraison' => 'en cours',
             'referenceColis' => 'LV-' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT),
+           
         ]);
 
         Paiement::create([
@@ -227,22 +232,20 @@ public function show($numCommande)
         return response()->json(['message' => 'Erreur lors de la création'], 500);
     }
 }
-    public function destroy($id)
-    {
-        $commande = Commande::where('numUtilisateur', auth()->id())
-                            ->where('statut', 'en attente')
-                            ->findOrFail($id);
+   public function destroyClient($referenceCommande)
+{
+    $commande = Commande::where('referenceCommande', $referenceCommande)
+        ->where('numUtilisateur', auth()->id())
+        ->firstOrFail();
 
-        // Remettre le stock si jamais il avait été déduit
-        foreach ($commande->detailCommandes as $detail) {
-            Produit::where('numProduit', $detail->numProduit)
-                   ->increment('poids', $detail->poids);
-        }
-
-        $commande->delete();
-
-        return response()->json(['message' => 'Commande annulée avec succès']);
+    if (!in_array(strtolower($commande->statut), ['en attente', 'attente'])) {
+        return response()->json(['message' => 'Impossible de modifier une commande déjà payée'], 403);
     }
+
+    $commande->delete();
+
+    return response()->json(['message' => 'Commande annulée avec succès']);
+}
 
     public function confirmerPaiement($numCommande)
 {
@@ -288,6 +291,29 @@ public function updateModePaiement(Request $request, $referenceCommande)
     return response()->json([
         'message' => 'Mode de paiement mis à jour avec succès',
         'mode_paiement' => $commande->modePaiement?->nomModePaiement
+    ]);
+}
+public function update(Request $request, $numCommande)
+{
+    $request->validate([
+        'statut' => 'sometimes|required|in:en attente,payée,validée,expédiée,livrée,annulée',
+        'payerLivraison' => 'sometimes|required|boolean',
+        'montantTotal' => 'sometimes|required|numeric|min:0',
+    ]);
+
+    $commande = Commande::findOrFail($numCommande);
+
+    $updates = $request->only(['statut', 'payerLivraison', 'montantTotal']);
+
+    if (empty($updates)) {
+        return response()->json(['message' => 'Aucun champ à mettre à jour'], 400);
+    }
+
+    $commande->update($updates);
+
+    return response()->json([
+        'message' => 'Commande mise à jour avec succès',
+        'commande' => $commande->fresh(['utilisateur', 'modePaiement', 'livraisons'])
     ]);
 }
 }

@@ -41,8 +41,9 @@ public function update(Request $request, $id)
         'statutLivraison' => 'required|string',
         'transporteur' => 'sometimes|string',
         'contactTransporteur' => 'sometimes|nullable|string',
+         
     ]);
-
+  
     DB::beginTransaction();
     try {
         $livraison->statutLivraison = $request->statutLivraison;

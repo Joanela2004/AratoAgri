@@ -30,7 +30,7 @@ public function MgaToUsd()
             return null;
         }
 
-        return $data["rates"]["USD"]; // ⚠️ Retourne UNIQUEMENT le chiffre
+        return $data["rates"]["USD"];
     } 
     catch (\Exception $e) {
         return null;

@@ -37,6 +37,8 @@ Route::get('articles/{id}', [ArticleController::class, 'show']);
 Route::get('/produits', [ProduitController::class, 'index']);
 Route::get('/produits/{id}', [ProduitController::class, 'show']);
 Route::get('/categories', [CategorieController::class, 'index']);
+Route::get('/categories/{id}', [CategorieController::class, 'show']);
+
 
 // ==================== AUTHENTIFICATION PUBLIQUE ====================
 
@@ -68,16 +70,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('utilisateurs/{id}', [UtilisateurController::class, 'update']);
 
     // Commandes client
-    Route::get('/mes-commandes', [CommandeController::class, 'indexClient']);
-    Route::get('/mes-commandes/{id}', [CommandeController::class, 'showClient']);
+    Route::get('/mesCommandes', [CommandeController::class, 'indexClient']);
+    Route::get('/mesCommandes/{id}', [CommandeController::class, 'showClient']);
     Route::post('/commandes', [CommandeController::class, 'store']);
     Route::patch('/commandes/{referenceCommande}/mode-paiement', [CommandeController::class, 'updateModePaiement']);
-
+    Route::delete('/mesCommandes/{referenceCommande}', [CommandeController::class, 'destroyClient']);
+    
     // Promotions
     Route::post('/promotions/valider', [PromotionController::class, 'valider']);
 
     // Livraison client
-    Route::get('mes-commandes/{numCommande}/livraison', [LivraisonController::class, 'showByCommandeClient']);
+    Route::get('mesCommandes/{numCommande}/livraison', [LivraisonController::class, 'showByCommandeClient']);
 });
 
 // ====================== ROUTES ADMIN (auth + IsAdmin) ======================
@@ -96,8 +99,8 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
     Route::post('/paiements/{numCommande}/confirmer', [PaiementController::class, 'confirmerPaiement']);
     Route::apiResource('paiements', PaiementController::class);
     Route::put('/commandes/{numCommande}', [CommandeController::class, 'update']);
-    Route::apiResource('commandes', CommandeController::class)
-        ->except(['store', 'showClient', 'indexClient']);
+    Route::apiResource('commandes', CommandeController::class)->except(['store', 'showClient', 'indexClient']);
+    Route::get('/paiements/commande/{referenceCommande}', [PaiementController::class, 'getPaiementByCommande']);
 
     // Livraisons
     Route::apiResource('livraisons', LivraisonController::class);
@@ -116,7 +119,7 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
     Route::post('produits/{id}/restore', [ProduitController::class, 'restore']);
 
     // Catégories + restore
-    Route::apiResource('categories', CategorieController::class)->except(['index', 'show']);
+    Route::apiResource('categories', CategorieController::class)->except(['index']);
     Route::post('categories/{id}/restore', [CategorieController::class, 'restore']);
 
     // Découpes + restore

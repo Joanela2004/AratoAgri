@@ -19,8 +19,7 @@ class VerificationEmail extends Mailable
 
     public function build()
     {
-        $verificationUrl = route('verification.verify', ['token' => $this->user->email_verification_token]);
-
+       $verificationUrl = route('verify.email', $this->user->email_verification_token);
         return $this->subject('Confirmez votre email')
                     ->view('emails.verify')
                     ->with(['url' => $verificationUrl]);

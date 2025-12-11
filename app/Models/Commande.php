@@ -12,9 +12,14 @@ class Commande extends Model
     protected $primaryKey = 'numCommande';
 protected $fillable = [
     'numUtilisateur', 'numModePaiement', 'numLieu', 'statut', 'sousTotal',
-    'fraisLivraison', 'montantTotal', 'payerLivraison', 'codePromo', 
+    'fraisLivraison','dateLivraisonSouhaitee', 'montantTotal', 'payerLivraison', 'codePromo', 
     'numPromotion', 'dateCommande','estConsulte', 'referenceCommande'
 ];
+
+    protected $casts = [
+        'payerLivraison' => 'boolean',
+        'dateCommande' => 'datetime',
+        'dateLivraisonSouhaitee' => 'date',];
 
 
     public function utilisateur()

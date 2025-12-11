@@ -87,4 +87,15 @@ class ProduitController extends Controller
         Produit::onlyTrashed()->where("numProduit", $id)->restore();
         return response()->json(["message" => "Produit restauré"]);
     }
+    public function show($id)
+{
+    $produit = Produit::with(['categorie', 'promotion'])->find($id);
+
+    if (!$produit) {
+        return response()->json(['message' => 'Produit non trouvé'], 404);
+    }
+
+    return response()->json($produit);
+}
+
 }

@@ -13,8 +13,7 @@ use Carbon\Carbon;
 
 class PromotionController extends Controller
 {
-    // Liste toutes les promotions avec le champ "statut" calculé automatiquement
-    public function index()
+     public function index()
     {
         return response()->json(Promotion::all());
     }
@@ -41,9 +40,9 @@ class PromotionController extends Controller
 
         if ($data['automatique']) {
             $data['codePromo'] = null;
-        } elseif (empty($data['codePromo'])) {
-            return response()->json(['message' => 'Le code promo est obligatoire pour une promotion manuelle'], 422);
-        }
+        } else {
+       $data['codePromo'] = $request->filled('codePromo') ? strtoupper($request->codePromo) : null;
+}
 
         $data['montantMinimum']   = $data['montantMinimum'] ?? 0;
         $data['statutPromotion']  = $data['statutPromotion'] ?? true;
@@ -53,7 +52,6 @@ class PromotionController extends Controller
         return response()->json($promotion, 201);
     }
 
-    // Mise à jour d'une promotion
     public function update(Request $request, string $id)
     {
         $promotion = Promotion::findOrFail($id);
@@ -79,10 +77,9 @@ class PromotionController extends Controller
             if ($data['automatique']) {
                 $data['codePromo'] = null;
             } else {
-                $data['codePromo'] = $data['codePromo'] ?? $promotion->codePromo;
-                if (empty($data['codePromo'])) {
-                    return response()->json(['message' => 'Le code promo est obligatoire'], 422);
-                }
+               $data['codePromo'] = isset($data['codePromo']) && $data['codePromo'] !== ''
+            ? strtoupper($data['codePromo'])
+            : null;
             }
         }
 
@@ -177,7 +174,6 @@ class PromotionController extends Controller
         return response()->json(null, 204);
     }
 
-    // Envoi manuel d'une promo à un client
     public function sendPromoToClient(Request $request)
     {
         $request->validate([
