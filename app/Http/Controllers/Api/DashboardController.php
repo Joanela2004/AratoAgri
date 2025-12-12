@@ -17,7 +17,7 @@ use Carbon\Carbon;
 class DashboardController extends Controller
 {
     /**
-     * 🔵 Filtre de dates global utilisé par TOUTES les APIs
+     *  Filtre de dates global utilisé par TOUTES les APIs
      */
     private function getDateRange(Request $request)
     {
@@ -38,7 +38,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * 🔵 KPIs évolutifs avec filtres personnalisés
+     *  KPIs évolutifs avec filtres personnalisés
      */
     public function kpis(Request $request)
     {
@@ -124,7 +124,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * 🔵 Courbe des ventes
+     *  Courbe des ventes
      */
     public function salesOverTime(Request $request)
     {
@@ -164,7 +164,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * 🔵 Ventilation par catégorie
+     *  Ventilation par catégorie
      */
     public function salesByCategory(Request $request)
     {
@@ -194,7 +194,6 @@ class DashboardController extends Controller
     {
         [$start, $end] = $this->getDateRange($request);
 
-        $limit = intval($request->get('limit', 10));
         $metric = $request->get('metric', 'ca');
 
         $rows = DetailCommande::join('produits', 'detail_commandes.numProduit', '=', 'produits.numProduit')
@@ -217,7 +216,6 @@ class DashboardController extends Controller
                     : 'SUM(detail_commandes.poids) as total')
             )
             ->orderBy('total', 'desc')
-            ->limit($limit)
             ->get();
 
         return response()->json($rows);
@@ -226,8 +224,7 @@ class DashboardController extends Controller
     public function topClients(Request $request)
     {
         [$start, $end] = $this->getDateRange($request);
-        $limit = intval($request->get('limit', 10));
-
+      
         $rows = Utilisateur::join('commandes', 'utilisateurs.numUtilisateur', '=', 'commandes.numUtilisateur')
             ->whereBetween('commandes.dateCommande', [$start, $end])
             ->groupBy('utilisateurs.numUtilisateur', 'utilisateurs.nomUtilisateur','utilisateurs.image')
@@ -239,7 +236,7 @@ class DashboardController extends Controller
                 DB::raw('SUM(commandes.montantTotal) as total_depense')
             )
             ->orderBy('total_depense', 'desc')
-            ->limit($limit)
+            
             ->get();
 
         return response()->json($rows);
@@ -261,13 +258,13 @@ class DashboardController extends Controller
     
     public function getKpis(Request $request)
 {
-    // 🔥 appliquer ton filtre global
+    //  appliquer filtre global
     [$start, $end] = $this->getDateRange($request);
 
-    // 🔵 Nombre total de clients créés dans la période
+    //  Nombre total de clients créés dans la période
     $totalClients = Utilisateur::whereBetween('created_at', [$start, $end])->count();
 
-    // 🔵 Clients avec plusieurs achats DANS la période
+    //  Clients avec plusieurs achats DANS la période
     $clientsAvecPlusieursAchats = Utilisateur::whereHas('commandes', function ($q) use ($start, $end) {
         $q->whereBetween('dateCommande', [$start, $end])
           ->select('numUtilisateur', DB::raw("COUNT(*) as total"))
@@ -279,12 +276,12 @@ class DashboardController extends Controller
         ? round(($clientsAvecPlusieursAchats / $totalClients) * 100, 2)
         : 0;
 
-    // 🔵 Revenu dans la période
+    //  Revenu dans la période
     $revenuTotal = Paiement::where('statut', 'effectué')
         ->whereBetween('datePaiement', [$start, $end])
         ->sum('montantApayer');
 
-    // 🔵 Commandes dans la période
+    //  Commandes dans la période
     $totalCommandes = Commande::whereBetween('dateCommande', [$start, $end])->count();
 
     $annulations = Commande::where('statut', 'annulée')
