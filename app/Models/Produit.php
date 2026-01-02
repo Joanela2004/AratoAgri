@@ -20,7 +20,7 @@ class Produit extends Model
         'image',
         'numCategorie',
         'numPromotion',
-        'cout'
+       
     ];
 
     public function categorie()

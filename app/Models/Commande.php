@@ -41,6 +41,10 @@ protected $fillable = [
     {
         return $this->belongsTo(Promotion::class, 'numPromotion', 'numPromotion');
     }
+    public function paiement()
+{
+    return $this->hasOne(Paiement::class, 'numCommande');
+}
     public function detailCommandes()
     {
         return $this->hasMany(DetailCommande::class, 'numCommande', 'numCommande');

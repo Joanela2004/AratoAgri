@@ -165,6 +165,23 @@ class PromotionController extends Controller
             'promotion'     => $promo
         ]);
     }
+    public function getActiveAuto()
+{
+    $now = Carbon::now();
+
+    $promo = Promotion::where('automatique', true)
+        ->where('statutPromotion', true)
+        ->where('dateDebut', '<=', $now)
+        ->where('dateFin', '>=', $now)
+        ->orderBy('created_at', 'desc')
+        ->first();
+
+    if (!$promo) {
+        return response()->json(null, 404);
+    }
+
+    return response()->json($promo);
+}
 
     // Suppression
     public function destroy(string $id)

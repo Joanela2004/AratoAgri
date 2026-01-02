@@ -39,10 +39,6 @@ Route::get('/produits/{id}', [ProduitController::class, 'show']);
 Route::get('/categories', [CategorieController::class, 'index']);
 Route::get('/categories/{id}', [CategorieController::class, 'show']);
 
-
-// ==================== AUTHENTIFICATION PUBLIQUE ====================
-
-// Inscription / Connexion / Vérification email
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/verify-email/{token}', [AuthController::class, 'verifierEmail'])->name('verify.email');
@@ -58,6 +54,7 @@ Route::post('/promotions/auto', [PromotionController::class, 'appliquerAuto']);
 
 Route::get('/paiement/mvola/create-token', [MvolaController::class, 'generateToken']);
 Route::post('/paiement/mvola/pay', [MvolaController::class, 'pay']);
+Route::get('/promotions/automatiques/actives', [PromotionController::class, 'getActiveAuto']);
 
 // ====================== ROUTES PROTÉGÉES (UTILISATEUR CONNECTÉ) ======================
 Route::middleware('auth:sanctum')->group(function () {
@@ -101,7 +98,8 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
     Route::put('/commandes/{numCommande}', [CommandeController::class, 'update']);
     Route::apiResource('commandes', CommandeController::class)->except(['store', 'showClient', 'indexClient']);
     Route::get('/paiements/commande/{referenceCommande}', [PaiementController::class, 'getPaiementByCommande']);
-
+    Route::post('/commandes/{numCommande}/verifier-et-expedier', [CommandeController::class, 'verifierEtExpedier']);
+    
     // Livraisons
     Route::apiResource('livraisons', LivraisonController::class);
 
@@ -136,6 +134,7 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
     Route::post('frais_livraisons/{id}/restore', [FraisLivraisonController::class, 'restore']);
 
     // Dashboard
+    
     Route::get('/dashboard/getkpis', [DashboardController::class, 'getKpis']);
     Route::get('/dashboard/kpis', [DashboardController::class, 'kpis']);
     Route::get('/dashboard/sales-over-time', [DashboardController::class, 'salesOverTime']);
@@ -143,4 +142,6 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
     Route::get('/dashboard/top-products', [DashboardController::class, 'topProducts']);
     Route::get('/dashboard/top-clients', [DashboardController::class, 'topClients']);
     Route::get('/dashboard/stock-alerts', [DashboardController::class, 'stockAlerts']);
+    Route::get('/stock-alerts', [DashboardController::class, 'stockAlerts']);
+    Route::get('/advanced-kpis', [DashboardController::class, 'advancedKpis']);
 });

@@ -30,7 +30,6 @@ class ProduitController extends Controller
 
         if ($validator->fails()) {
 
-            // Vérifier si le produit existe en soft delete
             $deleted = Produit::onlyTrashed()
                 ->where("nomProduit", $request->nomProduit)
                 ->first();
