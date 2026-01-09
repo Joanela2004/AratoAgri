@@ -21,227 +21,193 @@ class DashboardController extends Controller
         $end = now()->endOfDay();
 
         if ($request->filled('start') && !in_array($request->start, ['null', 'undefined'], true)) {
-            try {
-                $start = Carbon::parse($request->start)->startOfDay();
-            } catch (\Exception $e) {}
+            $start = Carbon::parse($request->start)->startOfDay();
         }
-
         if ($request->filled('end') && !in_array($request->end, ['null', 'undefined'], true)) {
-            try {
-                $end = Carbon::parse($request->end)->endOfDay();
-            } catch (\Exception $e) {}
+            $end = Carbon::parse($request->end)->endOfDay();
         }
 
         return [$start, $end];
     }
 
- public function kpis(Request $request)
-{
-    if ($request->range === "custom") {
+    public function kpis(Request $request)
+    {
         [$dateStart, $dateEnd] = $this->getDateRange($request);
-    } else {
-        $range = $request->range ?? '30d';
+        $start = $dateStart->copy()->startOfDay();
+        $end = $dateEnd->copy()->endOfDay();
 
-        if ($range === 'today') {
-            $dateStart = now()->startOfDay();
-            $dateEnd = now();
-        } elseif ($range === '7d') {
-            $dateEnd = now();
-            $dateStart = now()->subDays(7);
-        } elseif ($range === '30d') {
-            $dateEnd = now();
-            $dateStart = now()->subDays(30);
-        } elseif ($range === '24h') {
-            $dateEnd = now();
-            $dateStart = now()->subHours(24);
-        } else {
-            $dateEnd = now();
-            $dateStart = now()->subDays(30);
-        }
+        // === REVENU TOTAL GLOBAL (tous les temps) ===
+        $revenuTotalGlobal = Paiement::where('statut', 'effectué')->sum('montantApayer');
+
+        // === CALCULS POUR LA PÉRIODE SÉLECTIONNÉE ===
+        $revenu = Paiement::where('statut', 'effectué')
+            ->whereBetween('datePaiement', [$start, $end])
+            ->sum('montantApayer');
+
+        $totalPayees = Commande::where('statut', 'payée')
+            ->whereBetween('dateCommande', [$start, $end])
+            ->count();
+
+        $commandesLivrees = Commande::where('statut', 'livrée')
+            ->whereBetween('dateCommande', [$start, $end])
+            ->count();
+
+        // === NOMBRE D'ARTICLES VENDUS (quantité totale, pas le poids) ===
+        $articlesVendus = DetailCommande::whereHas('commande', function ($q) use ($start, $end) {
+            $q->where('statut', 'livrée')
+              ->whereBetween('dateCommande', [$start, $end]);
+        })->count(); // Chaque ligne = 1 article vendu
+
+        $clientsNouveaux = Utilisateur::whereBetween('created_at', [$start, $end])->count();
+
+        $annulations = Commande::where('statut', 'annulée')
+            ->whereBetween('dateCommande', [$start, $end])
+            ->count();
+
+        $tauxAnnulation = $totalPayees > 0 ? round(($annulations / $totalPayees) * 100, 2) : 0;
+
+        return response()->json([
+            'period' => [
+                'start' => $dateStart->toDateString(),
+                'end'   => $dateEnd->toDateString(),
+            ],
+            'kpis' => [
+                'revenu'              => round((float) $revenu, 2),
+                'revenuTotalGlobal'   => round((float) $revenuTotalGlobal, 2),
+                'totalCommandes'      => $commandesLivrees,
+                'produitsVendus'      => (int) $articlesVendus, // ← CORRIGÉ : nombre d'articles
+                'clientsNouveaux'     => $clientsNouveaux,
+                'tauxAnnulation'      => $tauxAnnulation,
+            ]
+        ]);
     }
 
-    $periodDays = $dateStart->diffInDays($dateEnd) + 1;
-    $prevEnd = (clone $dateStart)->subDay()->endOfDay();
-    $prevStart = (clone $prevEnd)->subDays($periodDays - 1)->startOfDay();
+   public function salesOverTime(Request $request)
+{
+    [$start, $end] = $this->getDateRange($request);
+    $interval = $request->get('interval', 'day');
 
-    // === Chiffre d'affaires : basé uniquement sur les commandes livrées ===
-    $totalRevenu = Commande::where('statut', 'livrée')
-        ->whereBetween('dateCommande', [$dateStart, $dateEnd])
-        ->sum('montantTotal');
+    $rows = Commande::select(
+        DB::raw("DATE(dateCommande) as period"),
+        DB::raw("SUM(montantTotal) as total")
+    )
+        ->where('statut', 'livrée')
+        ->whereBetween('dateCommande', [$start, $end])
+        ->groupBy('period')
+        ->orderBy('period')
+        ->get()
+        ->keyBy('period');
 
-    $prevRevenu = Commande::where('statut', 'livrée')
-        ->whereBetween('dateCommande', [$prevStart, $prevEnd])
-        ->sum('montantTotal');
+    // 🔥 Générer TOUTES les dates
+    $dates = [];
+    $current = $start->copy();
 
-    // Nombre de commandes : toutes les commandes créées dans la période
-    $commandesCount = Commande::whereBetween('dateCommande', [$dateStart, $dateEnd])->count();
-    $prevCommandesCount = Commande::whereBetween('dateCommande', [$prevStart, $prevEnd])->count();
+    while ($current <= $end) {
+        $key = $current->format('Y-m-d');
+        $dates[] = [
+            'period' => $key,
+            'total'  => isset($rows[$key]) ? (float) $rows[$key]->total : 0
+        ];
+        $current->addDay();
+    }
 
-    // Clients nouveaux
-    $clientsNouveaux = Utilisateur::whereBetween('created_at', [$dateStart, $dateEnd])->count();
-    $prevClientsNouveaux = Utilisateur::whereBetween('created_at', [$prevStart, $prevEnd])->count();
-
-    // Nombre de produits vendus (lignes de commandes sur commandes livrées)
-    $produitsVendus = DetailCommande::whereHas('commande', function ($q) use ($dateStart, $dateEnd) {
-        $q->where('statut', 'livrée')
-          ->whereBetween('dateCommande', [$dateStart, $dateEnd]);
-    })->count();
-
-    $prevProduitsVendus = DetailCommande::whereHas('commande', function ($q) use ($prevStart, $prevEnd) {
-        $q->where('statut', 'livrée')
-          ->whereBetween('dateCommande', [$prevStart, $prevEnd]);
-    })->count();
-
-    // Fonction pour calculer le % de variation
-    $pctChange = function ($current, $previous) {
-        if ($previous == 0) return $current == 0 ? 0 : 100;
-        return round((($current - $previous) / $previous) * 100, 2);
-    };
-
-    return response()->json([
-        'period' => [
-            'start' => $dateStart->toDateTimeString(),
-            'end'   => $dateEnd->toDateTimeString(),
-        ],
-        'kpis' => [
-            'totalRevenu'              => $totalRevenu ?? 0,
-            'totalRevenuChangePct'     => $pctChange($totalRevenu, $prevRevenu),
-            'commandesCount'           => $commandesCount,
-            'commandesCountChangePct'  => $pctChange($commandesCount, $prevCommandesCount),
-            'clientsNouveaux'          => $clientsNouveaux,
-            'clientsNouveauxChangePct' => $pctChange($clientsNouveaux, $prevClientsNouveaux),
-            'produitsVendus'           => (int) $produitsVendus,
-            'produitsVendusChangePct'  => $pctChange($produitsVendus, $prevProduitsVendus),
-        ]
-    ]);
+    return response()->json($dates);
 }
 
-    public function salesOverTime(Request $request)
+    private function getPeriodExpression($interval)
+    {
+        return match ($interval) {
+            'day'   => 'DATE(dateCommande)',
+            'week'  => "CONCAT(YEAR(dateCommande), '-W', LPAD(WEEK(dateCommande), 2, '0'))",
+            'month' => "DATE_FORMAT(dateCommande, '%Y-%m')",
+            default => 'DATE(dateCommande)',
+        };
+    }
+
+   public function salesByCategory(Request $request)
 {
     [$start, $end] = $this->getDateRange($request);
 
-    $interval = $request->get('interval', 'day');
+    $rows = DB::table('commandes')
+        ->join('detail_commandes', 'commandes.numCommande', '=', 'detail_commandes.numCommande')
+        ->join('produits', 'detail_commandes.numProduit', '=', 'produits.numProduit')
+        ->join('categories', 'produits.numCategorie', '=', 'categories.numCategorie')
+        ->where('commandes.statut', 'livrée')
+        ->whereBetween('commandes.dateCommande', [$start, $end])
+        ->groupBy('categories.numCategorie', 'categories.nomCategorie')
+        ->select(
+            'categories.numCategorie',
+            'categories.nomCategorie',
+            DB::raw('SUM(detail_commandes.sousTotal) as total')
+        )
+        ->orderByDesc('total')
+        ->get();
 
-    if ($interval === 'day') {
-        $rows = Commande::select(
-                DB::raw('DATE(dateCommande) as period'),
-                DB::raw('SUM(montantTotal) as total')
-            )
-            ->where('statut', 'livrée')
-            ->whereBetween('dateCommande', [$start, $end])
-            ->groupBy(DB::raw('DATE(dateCommande)'))
-            ->orderBy('period')
-            ->get();
-    } elseif ($interval === 'week') {
-        $rows = Commande::select(
-                DB::raw("CONCAT(YEAR(dateCommande), '-W', LPAD(WEEK(dateCommande), 2, '0')) as period"),
-                DB::raw('SUM(montantTotal) as total')
-            )
-            ->where('statut', 'livrée')
-            ->whereBetween('dateCommande', [$start, $end])
-            ->groupBy(DB::raw('YEAR(dateCommande)'), DB::raw('WEEK(dateCommande)'))
-            ->orderBy('period')
-            ->get();
-    } else { // month
-        $rows = Commande::select(
-                DB::raw("DATE_FORMAT(dateCommande, '%Y-%m') as period"),
-                DB::raw('SUM(montantTotal) as total')
-            )
-            ->where('statut', 'livrée')
-            ->whereBetween('dateCommande', [$start, $end])
-            ->groupBy(DB::raw("DATE_FORMAT(dateCommande, '%Y-%m')"))
-            ->orderBy('period')
-            ->get();
-    }
-
-    // Optionnel : formater les résultats pour le frontend
-    $formatted = $rows->map(function ($row) {
-        return [
-            'period' => $row->period,
-            'total'  => round((float) $row->total, 2),
-        ];
-    });
-
-    return response()->json($formatted);
+    return response()->json($rows);
 }
 
-    /**
-     * Ventilation par catégorie
-     */
-    public function salesByCategory(Request $request)
-    {
-        [$start, $end] = $this->getDateRange($request);
-
-        $rows = DB::table('categories')
-            ->leftJoin('produits', 'categories.numCategorie', '=', 'produits.numCategorie')
-            ->leftJoin('detail_commandes', 'produits.numProduit', '=', 'detail_commandes.numProduit')
-            ->leftJoin('commandes', function ($join) use ($start, $end) {
-                $join->on('detail_commandes.numCommande', '=', 'commandes.numCommande')
-                     ->where('commandes.statut', 'livrée')
-                     ->whereBetween('commandes.dateCommande', [$start, $end]);
-            })
-            ->groupBy('categories.numCategorie', 'categories.nomCategorie')
-            ->select(
-                'categories.numCategorie',
-                'categories.nomCategorie',
-                DB::raw('COALESCE(SUM(detail_commandes.sousTotal), 0) as total')
-            )
-            ->orderBy('total', 'desc')
-            ->get();
-
-        return response()->json($rows);
-    }
 
     public function topProducts(Request $request)
     {
         [$start, $end] = $this->getDateRange($request);
-        $metric = $request->get('metric', 'ca');
+        $metric = $request->get('metric', 'ca'); // 'ca' ou 'quantity'
 
-        $rows = DetailCommande::join('produits', 'detail_commandes.numProduit', '=', 'produits.numProduit')
+        $query = DetailCommande::join('produits', 'detail_commandes.numProduit', '=', 'produits.numProduit')
             ->join('commandes', 'detail_commandes.numCommande', '=', 'commandes.numCommande')
-            ->join('utilisateurs', 'commandes.numUtilisateur', '=', 'utilisateurs.numUtilisateur')
             ->where('commandes.statut', 'livrée')
-            ->whereBetween('commandes.dateCommande', [$start, $end])
-            ->groupBy(
-                'produits.numProduit',
-                'produits.nomProduit',
-                'utilisateurs.nomUtilisateur',
-                'utilisateurs.image'
-            )
-            ->select(
-                'produits.numProduit',
-                'produits.nomProduit',
-                'utilisateurs.nomUtilisateur as clientName',
-                'utilisateurs.image as clientImage',
-                DB::raw($metric === 'ca'
-                    ? 'SUM(detail_commandes.sousTotal) as total'
-                    : 'SUM(detail_commandes.poids) as total')
-            )
-            ->orderBy('total', 'desc')
-            ->get();
+            ->whereBetween('commandes.dateCommande', [$start, $end]);
 
-        return response()->json($rows);
+        if ($metric === 'quantity') {
+            // Quantité en nombre d'articles (count) ou poids selon besoin
+            $query->select(
+                'produits.numProduit',
+                'produits.nomProduit',
+                DB::raw('COUNT(detail_commandes.numDetail) as total') // Nombre d'articles
+            )->groupBy('produits.numProduit', 'produits.nomProduit');
+        } else {
+            $query->select(
+                'produits.numProduit',
+                'produits.nomProduit',
+                DB::raw('SUM(detail_commandes.sousTotal) as total')
+            )->groupBy('produits.numProduit', 'produits.nomProduit');
+        }
+
+        $rows = $query->orderByDesc('total')->limit(10)->get();
+
+        return response()->json($rows->map(fn($row) => [
+            'numProduit' => $row->numProduit,
+            'nomProduit' => $row->nomProduit,
+            'total'      => round($row->total, 2),
+            'unite'      => $metric === 'quantity' ? 'unités' : 'Ar'
+        ]));
     }
 
-public function topClients(Request $request)
+   public function topClients(Request $request)
 {
     [$start, $end] = $this->getDateRange($request);
     $limit = $request->get('limit', 10);
 
-    // Top clients : commandes non annulées
+    // Partir des paiements effectués, puis remonter à l'utilisateur via la commande
     $clients = Utilisateur::join('commandes', 'utilisateurs.numUtilisateur', '=', 'commandes.numUtilisateur')
-        ->whereNotIn('commandes.statut', ['annulée'])
-        ->whereBetween('commandes.dateCommande', [$start, $end])
-        ->groupBy('utilisateurs.numUtilisateur', 'utilisateurs.nomUtilisateur', 'utilisateurs.image', 'utilisateurs.email')
+        ->join('paiements', 'commandes.numCommande', '=', 'paiements.numCommande')
+        ->where('paiements.statut', 'effectué')
+        ->whereBetween('paiements.datePaiement', [$start, $end])
+        ->groupBy(
+            'utilisateurs.numUtilisateur',
+            'utilisateurs.nomUtilisateur',
+            'utilisateurs.image',
+            'utilisateurs.email'
+        )
         ->select(
             'utilisateurs.numUtilisateur',
             'utilisateurs.nomUtilisateur',
             'utilisateurs.image',
             'utilisateurs.email',
-            DB::raw('COUNT(commandes.numCommande) as commandes_count'),
-            DB::raw('SUM(commandes.montantTotal) as total_depense')
+            DB::raw('COUNT(DISTINCT commandes.numCommande) as commandes_count'),           // nb de commandes payées
+            DB::raw('COUNT(DISTINCT paiements.numPaiement) as paiements_count'),           // nb de transactions
+            DB::raw('SUM(paiements.montantApayer) as total_depense')                       // total réellement payé
         )
-        ->orderBy('commandes_count', 'desc')
+        ->orderByDesc('total_depense')
         ->limit($limit)
         ->get();
 
@@ -249,14 +215,15 @@ public function topClients(Request $request)
         return response()->json([]);
     }
 
-    $maxCommandes = $clients->max('commandes_count') ?: 1;
+    $maxDepense = $clients->max('total_depense') ?: 1;
 
-    $formatted = $clients->map(function ($client) use ($maxCommandes, $start, $end) {
-        // Historique mensuel
-        $historique = Commande::where('numUtilisateur', $client->numUtilisateur)
-            ->whereNotIn('statut', ['annulée'])
-            ->whereBetween('dateCommande', [$start, $end])
-            ->selectRaw("DATE_FORMAT(dateCommande, '%Y-%m') as mois, COALESCE(SUM(montantTotal), 0) as total")
+    $formatted = $clients->map(function ($client) use ($start, $end, $maxDepense) {
+        // Historique mensuel des dépenses (basé sur paiements effectués)
+        $historique = Paiement::join('commandes', 'paiements.numCommande', '=', 'commandes.numCommande')
+            ->where('commandes.numUtilisateur', $client->numUtilisateur)
+            ->where('paiements.statut', 'effectué')
+            ->whereBetween('paiements.datePaiement', [$start, $end])
+            ->selectRaw("DATE_FORMAT(paiements.datePaiement, '%Y-%m') as mois, COALESCE(SUM(paiements.montantApayer), 0) as total")
             ->groupBy('mois')
             ->orderBy('mois')
             ->pluck('total', 'mois')
@@ -270,53 +237,51 @@ public function topClients(Request $request)
             $current->addMonth();
         }
 
-        // Produits achetés par ce client (poids = quantité)
-        $produitsDetail = DetailCommande::join('produits', 'detail_commandes.numProduit', '=', 'produits.numProduit')
-            ->join('commandes', 'detail_commandes.numCommande', '=', 'commandes.numCommande')
+        // Produits préférés (basés sur les commandes payées effectivement)
+        $produitsDetail = DetailCommande::join('commandes', 'detail_commandes.numCommande', '=', 'commandes.numCommande')
+            ->join('paiements', 'commandes.numCommande', '=', 'paiements.numCommande')
+            ->join('produits', 'detail_commandes.numProduit', '=', 'produits.numProduit')
             ->where('commandes.numUtilisateur', $client->numUtilisateur)
-            ->whereNotIn('commandes.statut', ['annulée'])
-            ->whereBetween('commandes.dateCommande', [$start, $end])
+            ->where('paiements.statut', 'effectué')
+            ->whereBetween('paiements.datePaiement', [$start, $end])
             ->groupBy('produits.numProduit', 'produits.nomProduit')
-            ->selectRaw('produits.nomProduit as nom, COALESCE(SUM(detail_commandes.poids), 0) as qte')
-            ->orderBy('qte', 'desc')
+            ->selectRaw('produits.nomProduit as nom, COUNT(*) as qte') // nombre d'unités vendues
+            ->orderByDesc('qte')
             ->limit(6)
             ->get()
             ->map(fn($item) => [
                 'nom' => $item->nom ?? 'Produit inconnu',
-                'qte' => round((float)$item->qte, 2) // Arrondi à 2 décimales car c'est du poids
+                'qte' => (int) $item->qte
             ])
             ->filter(fn($p) => $p['qte'] > 0)
             ->values()
             ->toArray();
 
-        if (empty($produitsDetail)) {
-            $produitsDetail = [['nom' => 'Aucun produit', 'qte' => 1]];
-            $produitsText = 'Aucun produit dans cette période';
-        } else {
-            $produitsText = collect($produitsDetail)
-                ->map(fn($p) => $p['nom'] . ' (' . $p['qte'] . ' kg)')
-                ->implode(', ');
-        }
+        $produitsText = empty($produitsDetail)
+            ? 'Aucun produit dans cette période'
+            : collect($produitsDetail)->map(fn($p) => $p['nom'] . ' (' . $p['qte'] . ' unités)')->implode(', ');
 
-        $progress = round(($client->commandes_count / $maxCommandes) * 100, 2);
+        $progress = round(($client->total_depense / $maxDepense) * 100, 2);
 
         return [
-            'numUtilisateur'          => $client->numUtilisateur,
-            'nomUtilisateur'          => $client->nomUtilisateur ?? 'Inconnu',
-            'image'                   => $client->image,
-            'email'                   => $client->email ?? 'Non renseigné',
-            'commandes_count'         => (int) $client->commandes_count,
-            'total_depense'           => round((float) $client->total_depense, 2),
-            'progress_pct'            => $progress,
-            'historique_achats'       => array_values($allMonths),
-            'produits_preferes'       => $produitsText,
+            'numUtilisateur'         => $client->numUtilisateur,
+            'nomUtilisateur'         => $client->nomUtilisateur ?? 'Inconnu',
+            'image'                  => $client->image,
+            'email'                  => $client->email ?? 'Non renseigné',
+            'commandes_count'        => (int) $client->commandes_count,
+            'paiements_count'        => (int) $client->paiements_count,
+            'total_depense'          => round((float) $client->total_depense, 2),
+            'progress_pct'           => $progress,
+            'historique_achats'      => array_values($allMonths),
+            'produits_preferes'      => $produitsText,
             'produits_preferes_detail' => $produitsDetail,
         ];
     });
 
     return response()->json($formatted);
 }
-    public function stockAlerts(Request $request)
+
+   public function stockAlerts(Request $request)
     {
         [$start, $end] = $this->getDateRange($request);
         $threshold = $request->get('threshold', 1.0);
@@ -326,46 +291,5 @@ public function topClients(Request $request)
             ->get();
 
         return response()->json($produits);
-    }
-
-    public function getKpis(Request $request)
-    {
-        [$start, $end] = $this->getDateRange($request);
-
-        $totalClients = Utilisateur::whereBetween('created_at', [$start, $end])->count();
-
-        $clientsAvecPlusieursAchats = Utilisateur::whereHas('commandes', function ($q) use ($start, $end) {
-            $q->where('statut', 'livrée')
-              ->whereBetween('dateCommande', [$start, $end])
-              ->select('numUtilisateur', DB::raw("COUNT(*) as total"))
-              ->groupBy('numUtilisateur')
-              ->havingRaw('COUNT(*) > 1');
-        })->count();
-
-        $repeatPurchaseRate = $totalClients > 0
-            ? round(($clientsAvecPlusieursAchats / $totalClients) * 100, 2)
-            : 0;
-
-        $revenuTotal = Commande::where('statut', 'livrée')
-            ->whereBetween('dateCommande', [$start, $end])
-            ->sum('montantTotal');
-
-        $totalCommandes = Commande::where('statut', 'livrée')
-            ->whereBetween('dateCommande', [$start, $end])
-            ->count();
-
-        $annulations = Commande::where('statut', 'annulée')
-            ->whereBetween('dateCommande', [$start, $end])
-            ->count();
-
-        $tauxRetour = $totalCommandes > 0
-            ? round(($annulations / $totalCommandes) * 100, 2)
-            : 0;
-
-        return response()->json([
-            'repeatPurchaseRate' => $repeatPurchaseRate,
-            'revenuTotal' => $revenuTotal,
-            'tauxRetour' => $tauxRetour,
-        ]);
     }
 }

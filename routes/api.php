@@ -135,7 +135,7 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
 
     // Dashboard
     
-    Route::get('/dashboard/getkpis', [DashboardController::class, 'getKpis']);
+    // Route::get('/dashboard/getkpis', [DashboardController::class, 'getKpis']);
     Route::get('/dashboard/kpis', [DashboardController::class, 'kpis']);
     Route::get('/dashboard/sales-over-time', [DashboardController::class, 'salesOverTime']);
     Route::get('/dashboard/sales-by-category', [DashboardController::class, 'salesByCategory']);
@@ -143,5 +143,4 @@ Route::middleware(['auth:sanctum', 'IsAdmin'])->group(function () {
     Route::get('/dashboard/top-clients', [DashboardController::class, 'topClients']);
     Route::get('/dashboard/stock-alerts', [DashboardController::class, 'stockAlerts']);
     Route::get('/stock-alerts', [DashboardController::class, 'stockAlerts']);
-    Route::get('/advanced-kpis', [DashboardController::class, 'advancedKpis']);
-});
+   });

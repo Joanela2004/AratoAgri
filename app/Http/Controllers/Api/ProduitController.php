@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Http\Controllers\Api;
-
 use App\Http\Controllers\Controller;
 use App\Models\Produit;
 use Illuminate\Http\Request;
@@ -15,8 +13,6 @@ class ProduitController extends Controller
         ->orderBy("numProduit", "DESC")
         ->get();
 }
-
-
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
