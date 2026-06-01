@@ -1,0 +1,46 @@
+:root{
+     --color-green-primary:#28A458;
+    --color-green-secondary:#5EBB82;
+    --color-text-dark:#161616;
+    --color-background-light:#F5F0E1;
+    --color-background-white:#FFFF;
+    --color-shadow:rgba(22, 163, 74, 1);
+    --font-main:"Poppins", sans-serif;
+    --font-size-base: 16px;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  
+}
+
+.pagination-btn {
+   box-shadow: var(--box-shadow);
+ 
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background-color: var(--color-background-white);
+  color: var(--color-green-primary);
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+ 
+}
+
+.pagination-btn.active {
+  background-color: var(--color-green-primary);
+  color: white;
+}
+
+.pagination-btn:hover:not(.active) {
+  background-color: var(--color-green-secondary);
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

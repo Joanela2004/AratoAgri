@@ -1,0 +1,590 @@
+
+.profil-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  
+}
+
+.profil-guest {
+  text-align: center;
+}
+
+
+
+.forms-grid {
+  
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 50px;
+  justify-content: center;
+  max-width: 1000px;
+  margin: 40px auto;
+}
+
+.form-card {
+  border-radius: 20px;
+    padding: 0px 40px;
+  transition: all 0.3s ease;
+}
+
+.conteneur-formulaire .titre h1 {
+  font-size: 1.65rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.conteneur-formulaire .titre p {
+  color: #666;
+  font-size: 0.98rem;
+  margin-bottom: 36px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.groupe-formulaire {
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.groupe-formulaire label {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 9px;
+  letter-spacing: 0.2px;
+}
+
+.groupe-formulaire input {
+  width: 100%;
+  padding: 16px 18px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  font-size: 1rem;
+  background: #fdfdfd;
+  transition: all 0.25s ease;
+  color: #1a1a1a;
+}
+
+.groupe-formulaire input::placeholder {
+  color: #a0aec0;
+}
+
+.groupe-formulaire input:focus {
+  outline: none;
+  border-color: #28a458;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(72, 187, 120, 0.1);
+}
+.validation-mot-de-passe {
+  margin-top: 10px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.validation-mot-de-passe p {
+  
+  margin: 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.validation-mot-de-passe p::before {
+  content: "○";
+  font-size: 0.9em;
+}
+
+.validation-mot-de-passe p.valide {
+  color: #28a458;
+}
+
+.validation-mot-de-passe p.valide::before {
+  content: "✓";
+  color: #28a458;
+  font-weight: bold;
+}
+
+
+.bouton-primaire.fond-vert {
+  width: 100%;
+  padding: 10px;
+  background: #28a458;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+}
+
+.bouton-primaire.fond-vert:hover {
+  background: #28a458;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.3);
+}
+
+.lien-mot-de-passe {
+  text-align: right;
+   color: #28a458;
+  margin: 16px 0 10px;
+}
+
+.lien-mot-de-passe a {
+  color: #28a458;
+  font-size: 0.9rem;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.lien-mot-de-passe a:hover {
+  text-decoration: underline;
+}
+
+.profil-connected {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 70vh;
+  padding: 40px 0;
+}
+
+@media (max-width: 768px) {
+  .forms-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding: 0 10px;
+  }
+
+  .form-card {
+    padding: 40px 28px;
+  }
+
+  .section-title {
+    font-size: 1.8rem;
+  }
+
+  .conteneur-formulaire .titre h1 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-card {
+    padding: 36px 24px;
+    border-radius: 18px;
+  }
+
+  .groupe-formulaire input {
+    padding: 15px 16px;
+  }
+}
+
+.profil-carte-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 60px;
+  padding: 0 20px;
+}
+
+.carte-profil {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  max-width: 500px;
+  width: 100%;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+
+
+.carte-profil-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.carte-profil-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.carte-profil-image-cercle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #f1f3f5;
+  background: #f8f9fa;
+ }
+
+.carte-profil-avatar-placeholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #f1f3f5;
+  color: white;
+  font-size: 40px;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+}
+.modal-buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.modal-close-x {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  font-size: 28px;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.3s;
+}
+
+.modal-close-x:hover {
+  background: #e2e8f0;
+  color: #1a1a1a;
+}
+.carte-profil-info {
+  flex: 1;
+}
+
+.carte-profil-info h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.carte-profil-info p {
+  font-size: 1.05rem;
+  color: #666;
+  margin-bottom: 0;
+  line-height: 1.4;
+}
+
+.carte-profil-actions {
+  display: flex;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid #e9ecef;
+}
+
+.carte-profil-actions button {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #28a458, #28a458);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+  box-shadow: 0 4px 15px rgba(22, 163, 74, 0.2);
+}
+
+.carte-profil-actions button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(22, 163, 74, 0.3);
+  background: linear-gradient(135deg, #28a458, #28a458);
+}
+
+.carte-profil-actions button:active {
+  transform: translateY(-1px);
+}
+
+/* Styles pour les formulaires quand l'utilisateur est connecté */
+.forms-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
+  position: relative;
+}
+
+.forms-disabled::after {
+  content: "Ces formulaires sont désactivés lorsque vous êtes connecté";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px 30px;
+  border-radius: 16px;
+  color: #666;
+  font-weight: 500;
+  font-size: 1.1rem;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px);
+  z-index: 10;
+  white-space: nowrap;
+}
+.modal-profil-edit {
+  position: relative;
+  border-radius: 28px;
+  padding: 20px 40px;
+  width: 100%;
+
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.modal-profil-edit h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+
+.photo-upload-section {
+  margin: 0 auto 40px;
+}
+
+.photo-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 10px auto 20px;
+  border: 5px solid #28a458;
+  box-shadow: 0 12px 30px rgba(22, 163, 74, 0.2);
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.etoile-obligatoire {
+  color: #d9534f;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+.photo-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #28a458, #28a458);
+  color: white;
+  font-size: 4rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-change-photo {
+  display: inline-block;
+  background: #f8f9fa;
+  color: #1a1a1a;
+  padding: 12px 28px;
+  
+  border-radius: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-change-photo:hover {
+  background: #e2e8f0;
+  border-color: #28a458;
+  color: #28a458;
+}
+
+.btn-change-photo input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.edit-form .groupe-formulaire {
+  margin-bottom: 28px;
+  text-align: left;
+}
+
+.edit-form label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.edit-form input {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  font-size: 1.05rem;
+  background: #fafafa;
+  transition: all 0.3s;
+}
+
+.edit-form input:focus {
+  border-color: #28a458;
+  background: white;
+  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.12);
+  outline: none;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.btn-cancel,
+.btn-save {
+  flex: 1;
+  padding: 16px;
+  border-radius: 16px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #28a458, #28a458);
+  color: white;
+  border: none;
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.3);
+}
+
+.btn-save:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(22, 163, 74, 0.4);
+}
+
+.btn-save:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+@media (max-width: 480px) {
+  .modal-profil-edit {
+    padding: 40px 24px 32px;
+  }
+  .photo-preview {
+    width: 110px;
+    height: 110px;
+  }
+  .photo-placeholder {
+    font-size: 3rem;
+  }
+  .modal-buttons {
+    flex-direction: column;
+  }
+}
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+
+@media (max-width: 768px) {
+  .carte-profil {
+    padding: 30px 25px;
+    max-width: 450px;
+  }
+  
+  .carte-profil-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 20px;
+  }
+  
+  .carte-profil-info h3 {
+    font-size: 1.5rem;
+  }
+  
+  .carte-profil-info p {
+    font-size: 1rem;
+  }
+  
+  .carte-profil-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .carte-profil-actions button {
+    width: 100%;
+  }
+  
+  .forms-disabled::after {
+    font-size: 1rem;
+    padding: 15px 20px;
+    white-space: normal;
+    max-width: 80%;
+  }
+}
+
+@media (max-width: 480px) {
+  .carte-profil {
+    padding: 25px 20px;
+    border-radius: 20px;
+  }
+  
+  .carte-profil-image-cercle,
+  .carte-profil-avatar-placeholder {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .carte-profil-avatar-placeholder {
+    font-size: 32px;
+  }
+  
+  .modal-content {
+    padding: 30px 20px;
+  }
+}

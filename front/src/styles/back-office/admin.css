@@ -1,0 +1,73 @@
+
+.conteneur-formulaire {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.conteneur-formulaire h2 {
+    font-size: 1.8rem;
+    color: var(--color-text-dark, #3d3b3b);
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.groupe-formulaire {
+    margin-bottom: 20px;
+}
+
+.groupe-formulaire label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text-dark, #3d3b3b);
+}
+
+.groupe-formulaire input[type="text"],
+.groupe-formulaire input[type="password"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.groupe-formulaire input:focus {
+    border-color: var(--color-green-primary, #28a458);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(40, 164, 88, 0.1);
+}
+
+/* Styles des boutons */
+.bouton {
+    display: inline-block;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    transition: background-color 0.3s, transform 0.1s;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.bouton-primaire.fond-vert {
+    background-color: var(--color-green-primary, #28a458);
+    color: var(--color-background-white, #ffffff);
+}
+
+.bouton-primaire.fond-vert:hover {
+    background-color: var(--color-green-secondary, #5ebb82);
+}
+
+.conteneur-formulaire p {
+    text-align: center;
+    font-weight: 500;
+}

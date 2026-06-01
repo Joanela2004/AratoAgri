@@ -1,0 +1,138 @@
+/* ====================== ACTUALITÉ – MÊME DESIGN QUE LES PRODUITS ====================== */
+
+.actualite-section {
+  padding: 60px 20px;
+  background-color: #f8f9fa;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* On réutilise exactement le header des produits */
+.actualite-header {
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto 60px auto;
+}
+
+.actualite-header h3 {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.actualite-header p {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.7;
+  margin-bottom: 30px;
+}
+
+/* Barre de recherche (même style que dans le back-office) */
+.search-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+ 
+  padding: 10px 20px;
+  
+  
+}
+
+.search-bar:focus-within {
+  border-color: #28a458;
+  box-shadow: 0 8px 30px rgba(40, 164, 88, 0.2);
+}
+
+.search-bar input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 1.1rem;
+  padding: 8px 12px;
+  color: #333;
+}
+
+.search-bar input::placeholder {
+  color: #999;
+}
+
+.search-icon,
+.reset-icon {
+  font-size: 1.3rem;
+  color: #28a458;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.reset-icon:hover {
+  transform: rotate(180deg);
+}
+
+
+
+/* Carte article = carte produit */
+.article-card {
+  margin-top: 20px;
+  width: 300px;
+  height: auto;
+}
+
+.article-card .produit-image {
+  height: 150px;
+}
+
+.article-card .produit-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.article-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.article-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.article-extrait {
+  flex-grow: 1;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.lire-btn {
+  background: #28a458;
+  color: white;
+  text-align: center;
+  padding: 12px 20px;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: background 0.3s;
+}
+
+.lire-btn:hover {
+  background: #219653;
+  text-decoration: none;
+}
+
+/* Message vide */
+.no-products {
+  width: 100%;
+  text-align: center;
+  padding: 80px 20px;
+  color: #7f8c8d;
+  font-size: 1.3rem;
+}

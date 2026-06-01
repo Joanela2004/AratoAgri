@@ -1,0 +1,278 @@
+.commande-details-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background-white);
+  border-radius: var(--radius);
+  padding: 15px 20px;
+  box-shadow: var(--shadow);
+}
+
+.details-header h2 {
+  color: var(--color-text);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  margin: 0;
+  font-weight: 700;
+}
+
+/* Informations de la commande - disposition spécifique */
+.commande-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: var(--radius);
+}
+
+.commande-info p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.commande-info strong {
+  
+  min-width: 180px;
+  display: inline-block;
+  margin-right: 10px;
+}
+
+
+
+.table-produits {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 20px 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-produits thead {
+  background: var(--color-primary);
+  color: white;
+}
+
+.table-produits th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.table-produits tbody tr {
+  transition: all 0.3s ease;
+  border-bottom: 1px solid var(--color-border);
+}
+
+
+
+.table-produits td {
+  padding: 1rem;
+  vertical-align: middle;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table-produits tbody tr:last-child td {
+  border-bottom: none;
+}
+.img-produit {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.recap-financier {
+  margin-top: 30px;
+  padding: 25px;
+  
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  position: relative;
+}
+
+.recap-financier h3 {
+  color: var(--color-primary);
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recap-financier p {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.75rem 0;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--color-border);
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.recap-financier hr {
+  margin: 1.5rem 0;
+  border: none;
+  border-top: 2px solid var(--color-border);
+}
+
+.montant-total {
+  font-size: 1.3rem !important;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: white;
+  padding: 1rem !important;
+  border-radius: var(--radius);
+  border: 2px solid var(--color-primary) !important;
+  margin-top: 20px !important;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--color-background);
+  border-top: 5px solid var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-danger);
+  background: rgba(231, 76, 60, 0.1);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-danger);
+  margin: 20px auto;
+  max-width: 600px;
+}
+
+.error-message::before {
+  content: "⚠️ ";
+  font-size: 1.5rem;
+}
+
+/* Styles pour le téléchargement PDF */
+.pdf-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdf-loading .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+/* Styles pour l'impression */
+@media print {
+  .actions-container,
+  .btn {
+    display: none !important;
+  }
+  
+  .commande-details-container {
+    box-shadow: none;
+    padding: 0;
+  }
+  
+  .commande-info,
+  .recap-financier {
+    break-inside: avoid;
+  }
+  
+  .table-produits {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}
+
+/* Responsive pour détails de commande */
+@media (max-width: 768px) {
+  .commande-details-container {
+    padding: 10px;
+  }
+  
+  .details-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .commande-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .table-produits {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .recap-financier p {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .commande-info p {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .commande-info strong {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-produits th,
+  .table-produits td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .img-produit {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .recap-financier {
+    padding: 15px;
+  }
+  
+  .recap-financier h3 {
+    font-size: 1.2rem;
+  }
+}

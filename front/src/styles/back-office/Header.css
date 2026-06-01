@@ -1,0 +1,356 @@
+:root {
+  --color-green-primary: #28a458;
+  --color-green-secondary: #5ebb82;
+  --color-text-dark: #3d3b3b;
+  --color-background-white: #ffffff;
+  --color-background-light: #f5f0e1;
+  /* Ajout des variables manquantes avec des valeurs par défaut pour l'exemple */
+  --color-danger-dark: #dc2626; 
+  --color-border-light: #e0e0e0;
+  --rayon: 12px;
+  --transition: all 0.3s ease;
+}
+
+/* --- Généralités du Header --- */
+.dashboard-header {
+  background-color: var(--color-background-white);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 1rem 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: auto;
+  z-index: 999;
+  transition: var(--transition);
+}
+
+.header-content {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  margin: 0;
+}
+
+.header-logo-mobile {
+  display: none;
+}
+
+.header-logo-mobile img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-left: auto; /* Force l'alignement à droite */
+}
+
+/* --- Icône de Notification (RÉVISÉ) --- */
+.notification-container {
+  /* Assure l'alignement vertical avec les autres éléments de header-right */
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.notification-icon {
+  position: relative;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--rayon);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.bell-icon {
+  font-size: 1.5rem;
+  /* Fix: Supprimé background-color pour que l'icône soit visible et prenne la couleur de .notification-icon */
+  /* Fix: Supprimé la redéfinition de la couleur ici pour qu'elle hérite de .notification-icon */
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--color-danger-dark);
+  color: var(--color-background-white);
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Assure que le badge est au-dessus de tout */
+  z-index: 10;
+ }
+
+/* --- Menu Profil --- */
+.profile-menu-container {
+  position: relative;
+}
+
+.profile-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--rayon);
+  cursor: pointer;
+  color: var(--color-green-primary);
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+
+.profile-toggle:hover {
+  background-color: rgba(40, 164, 88, 0.1);
+  border-color: rgba(40, 164, 88, 0.2);
+}
+
+.profile-icon {
+  font-size: 1.5rem;
+  color: var(--color-green-primary);
+}
+
+.profile-name {
+  font-weight: 500;
+  color: var(--color-text-dark);
+  white-space: nowrap;
+}
+
+.caret-icon {
+  font-size: 0.875rem;
+  color: var(--color-text-dark);
+  transition: var(--transition);
+}
+
+.caret-icon.rotate {
+  transform: rotate(180deg);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 220px;
+  background-color: var(--color-background-white);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: var(--rayon);
+  padding: 1rem;
+  margin-top: 0.5rem;
+  z-index: 1000;
+  /* animation: slideDown 0.2s ease-out; - A définir si nécessaire */
+  border: 1px solid var(--color-border-light);
+}
+
+.profile-info {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 0.75rem;
+}
+
+.profile-email {
+  font-size: 0.875rem;
+  color: var(--color-text-dark);
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+/* Styles pour les options du dropdown */
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  background: none;
+  border-radius: var(--rayon);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: var(--transition);
+  text-align: left;
+}
+
+.dropdown-option-icon {
+  font-size: 1rem;
+  min-width: 16px;
+  color: inherit;
+}
+
+.change-password-btn {
+  color: var(--color-text-dark);
+  margin-bottom: 0.5rem;
+}
+
+.change-password-btn:hover {
+  background-color: rgba(40, 164, 88, 0.1);
+  color: var(--color-green-primary);
+}
+
+.logout-btn {
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.logout-btn:hover {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+/* --- Responsive --- */
+@media (max-width: 1024px) {
+  .dashboard-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .header-right {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    padding: 1rem;
+  }
+  
+  .header-content {
+    gap: 1rem;
+  }
+  
+  .page-title {
+    font-size: 1.25rem;
+  }
+  
+  .header-logo-mobile {
+    display: block;
+  }
+  
+  .header-left {
+    gap: 0.75rem;
+  }
+  
+  .profile-name {
+    display: none;
+  }
+  
+  .profile-dropdown {
+    width: 200px;
+    right: -0.5rem;
+  }
+  
+  .profile-toggle {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .header-right {
+    gap: 0.75rem;
+  }
+  
+  .notification-icon {
+    padding: 0.4rem;
+  }
+  
+  .bell-icon {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .page-title {
+    font-size: 1.1rem;
+  }
+  
+  .header-logo-mobile img {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .header-left {
+    gap: 0.5rem;
+  }
+  
+  .profile-toggle {
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .profile-icon {
+    font-size: 1.3rem;
+  }
+  
+  .profile-dropdown {
+    width: 180px;
+  }
+  
+  .header-right {
+    gap: 0.5rem;
+  }
+  
+  .notification-badge {
+    font-size: 0.7rem;
+    padding: 1px 4px;
+    min-width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .page-title {
+    font-size: 1rem;
+  }
+  
+  .header-logo-mobile img {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .profile-dropdown {
+    width: 160px;
+    padding: 0.75rem;
+  }
+  
+  .header-right {
+    gap: 0.25rem;
+  }
+}
+
+/* Styles pour s'assurer que le header ne chevauche pas le contenu */
+main {
+  margin-top: 80px; /* Ajustez cette valeur en fonction de la hauteur de votre header */
+}

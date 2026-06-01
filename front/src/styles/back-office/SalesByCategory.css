@@ -1,0 +1,22 @@
+.sales-category-container {
+    display: flex;
+    justify-content: center;
+   
+    border-radius: var(--rayon);
+   
+}
+
+.sales-category-container h2 {
+    font-size: 22px;
+    margin-bottom: 18px;
+    color: var(--color-brown-dark);
+    font-weight: 600;
+    text-align: center;
+}
+
+.loading {
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--color-brown-dark);
+    margin-top: 40px;
+}

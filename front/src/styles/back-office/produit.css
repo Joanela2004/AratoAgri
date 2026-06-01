@@ -1,0 +1,38 @@
+/* ====================== BACK-OFFICE : Cartes plus compactes ====================== */
+.back-office-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  gap: 20px !important;
+}
+
+.back-office-card {
+  transform: scale(0.95);
+}
+
+.back-office-card:hover {
+  transform: scale(0.98) translateY(-4px) !important;
+}
+
+
+/* Texte plus compact */
+.back-office-card .produit-body {
+ 
+  padding: 16px !important;
+  margin-bottom: 20px;
+}
+
+.back-office-card .produit-title {
+  font-size: 1.1rem !important;
+  margin-bottom: 6px !important;
+}
+
+.back-office-card .produit-categorie {
+  font-size: 0.8rem !important;
+  margin-bottom: 10px !important;
+}
+
+.back-office-card .produit-prix-poids {
+  margin-bottom: 12px !important;
+  font-size: 0.95rem;
+}
+
+
